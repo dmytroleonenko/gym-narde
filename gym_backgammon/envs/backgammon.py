@@ -49,9 +49,8 @@ class Backgammon:
                         moves.append((pos, new_pos))
                 elif new_pos < 0:
                     # Check if bearing off is possible
-                    if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers in home quadrant
-                        # For extra-large die, check if no lower-point checkers
-                        if pos + die > 24 or np.sum(np.maximum(board[:pos], 0)) == 0:
+                    if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers are in the home quadrant
+                        if die >= pos + 1:
                             moves.append((pos, 'off'))
         first_turn = self.first_turn_white if current_player == 1 else self.first_turn_black
         return self._validate_head_moves(moves, roll, first_turn)

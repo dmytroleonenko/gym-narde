@@ -24,11 +24,17 @@ class BackgammonEnv(gym.Env):
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
-        # Get valid moves for these dice
         valid_moves = self.game.get_valid_moves(dice, self.current_player)
 
-        if len(valid_moves) == 1:
-            # Only one legal move—the rule calls for using the higher die move.
+        if len(valid_moves) == 0:
+            # No legal moves; skip turn.
+            done, reward = self._check_game_ended()
+            if not done:
+                self.current_player *= -1
+            return self._get_obs(), reward, done, {}
+
+        elif len(valid_moves) == 1:
+            # Only one legal move—that is, using the higher die.
             self.game.execute_rotated_move(valid_moves[0], self.current_player)
         else:
             move1_code, move2_code = action
@@ -50,10 +56,13 @@ class BackgammonEnv(gym.Env):
 
     def reset(self):
         self.game = Backgammon()
-        white_roll = np.random.randint(1, 7)
-        black_roll = np.random.randint(1, 7)
-        # According to the Long Nardy rule, the higher roll becomes White, and White moves first.
-        self.current_player = 1 if white_roll >= black_roll else -1
+        while True:
+            white_roll = np.random.randint(1, 7)
+            black_roll = np.random.randint(1, 7)
+            if white_roll != black_roll:
+                break
+        # The winning player (strictly higher roll) becomes White; otherwise Black.
+        self.current_player = 1 if white_roll > black_roll else -1
         return self._get_obs()
 
     def render(self, mode='human'):
