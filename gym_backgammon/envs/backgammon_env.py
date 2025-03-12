@@ -42,8 +42,12 @@ class BackgammonEnv(gym.Env):
             move2 = (move2_code // 24, move2_code % 24)
             if move1 in valid_moves:
                 self.game.execute_rotated_move(move1, self.current_player)
-            if move2 in valid_moves:
-                self.game.execute_rotated_move(move2, self.current_player)
+                # Recalculate valid moves for the remaining die after move1 is executed.
+                # (You need to select the remaining die value from dice; for example:)
+                remaining_die = [d for d in dice if d != (abs(move1[0] - (move1[1] if move1[1] != 'off' else 0)))][0]
+                new_valid_moves = self.game.get_valid_moves([remaining_die], self.current_player)
+                if move2 in new_valid_moves:
+                    self.game.execute_rotated_move(move2, self.current_player)
 
         # Check if game ended and compute reward
         done, reward = self._check_game_ended()

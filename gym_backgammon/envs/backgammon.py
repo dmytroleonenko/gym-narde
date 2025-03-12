@@ -23,10 +23,9 @@ class Backgammon:
         if current_player != 1:
             from_pos, to_pos = [(m + 12) % 24 for m in move]
             self._execute_move((from_pos, to_pos))
-            self.board = rotate_board(self.board)
+            # Removed board rotation to keep self.board in white perspective.
         else:
             self._execute_move(move)
-        
         # After executing, mark first turn as done for the current player.
         if current_player == 1:
             self.first_turn_white = False
