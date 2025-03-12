@@ -18,20 +18,15 @@ class BackgammonEnv(gym.Env):
         return self.game.get_perspective_board(self.current_player)
 
     def step(self, action):
-        # Action is always from current player's perspective
-        move = (action // 24, action % 24) # Convert discrete action to move
+        move = (action // 24, action % 24)
         self.game.execute_rotated_move(move, self.current_player)
 
         done = self._check_game_ended()
 
-        # Calculate reward based on who actually won
-        if done:
-            current_checkers = np.sum(self.game.board > 0)
-            reward = 1 if current_checkers == 0 else -1
-        else:
-            reward = 0
+        # Reward is always 1 for win, 0 otherwise (opponent's turn comes next)
+        reward = 1 if done else 0
 
-        # Only switch players if game continues
+        # Switch players if game continues
         if not done:
             self.current_player *= -1
 
