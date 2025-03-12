@@ -22,19 +22,20 @@ class BackgammonEnv(gym.Env):
         move = (action // 24, action % 24) # Convert discrete action to move
         self.game.execute_rotated_move(move, self.current_player)
 
-        # Switch perspective for next player
-        self.current_player *= -1
+        done = self._check_game_ended()
 
-        # Check winner from current perspective
-        done = self._check_winner()
-        reward = 1 if done else 0
+        # Calculate reward based on who actually won
+        if done:
+            current_checkers = np.sum(self.game.board > 0)
+            reward = 1 if current_checkers == 0 else -1
+        else:
+            reward = 0
+
+        # Only switch players if game continues
+        if not done:
+            self.current_player *= -1
+
         return self._get_obs(), reward, done, {}
-
-    def _check_game_ended(self):
-        # Check if either player has no checkers left
-        current_has_won = np.sum(self.game.board > 0) == 0  # Current perspective's player
-        opponent_has_won = np.sum(self.game.board < 0) == 0  # Other player
-        return current_has_won or opponent_has_won
 
     def reset(self):
         self.game = Backgammon()
