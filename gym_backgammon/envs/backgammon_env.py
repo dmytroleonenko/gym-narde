@@ -2,13 +2,13 @@ import gym
 import numpy as np
 from gym import spaces
 
-from gym_backgammon.envs.backgammon import Backgammon
+from gym_backgammon.envs.backgammon import Narde
 
-class BackgammonEnv(gym.Env):
+class NardeEnv(gym.Env):
     def __init__(self):
-        super(BackgammonEnv, self).__init__()
+        super(NardeEnv, self).__init__()
 
-        self.game = Backgammon()
+        self.game = Narde()
         self.current_player = 1  # Always white perspective
 
         self.observation_space = spaces.Box(low=-15, high=15, shape=(24,), dtype=np.int32)
@@ -51,7 +51,7 @@ class BackgammonEnv(gym.Env):
 
         # Check if game ended and compute reward
         done, reward = self._check_game_ended()
-        
+
         # Switch players if game continues
         if not done:
             self.current_player *= -1
@@ -59,7 +59,7 @@ class BackgammonEnv(gym.Env):
         return self._get_obs(), reward, done, {}
 
     def reset(self):
-        self.game = Backgammon()
+        self.game = Narde()
         while True:
             white_roll = np.random.randint(1, 7)
             black_roll = np.random.randint(1, 7)

@@ -3,9 +3,9 @@ import numpy as np
 def rotate_board(board):
     return np.concatenate((-board[12:], -board[:12])).astype(np.int32)
 
-class Backgammon:
+class Narde:
     def __init__(self):
-        # Initialize for White perspective
+        # Initialize for White perspective in Narde.
         self.board = np.zeros(24, dtype=np.int32)
         self.board[23] = 15  # White checkers on point 24 (index 23)
         self.board[11] = -15  # Black checkers on point 12 (index 11)
