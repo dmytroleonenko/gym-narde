@@ -25,19 +25,20 @@ class BackgammonEnv(gym.Env):
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
         # Get valid moves for these dice
-        valid_moves = self.game.get_valid_moves(dice)
-        
-        # Decode the two moves from the action tuple
-        move1_code, move2_code = action
-        move1 = (move1_code // 24, move1_code % 24)
-        move2 = (move2_code // 24, move2_code % 24)
-        
-        # Execute moves if they are valid
-        if move1 in valid_moves:
-            self.game.execute_rotated_move(move1, self.current_player)
-        if move2 in valid_moves:
-            self.game.execute_rotated_move(move2, self.current_player)
-            
+        valid_moves = self.game.get_valid_moves(dice, self.current_player)
+
+        if len(valid_moves) == 1:
+            # Only one legal move—the rule calls for using the higher die move.
+            self.game.execute_rotated_move(valid_moves[0], self.current_player)
+        else:
+            move1_code, move2_code = action
+            move1 = (move1_code // 24, move1_code % 24)
+            move2 = (move2_code // 24, move2_code % 24)
+            if move1 in valid_moves:
+                self.game.execute_rotated_move(move1, self.current_player)
+            if move2 in valid_moves:
+                self.game.execute_rotated_move(move2, self.current_player)
+
         # Check if game ended and compute reward
         done, reward = self._check_game_ended()
         
@@ -49,7 +50,10 @@ class BackgammonEnv(gym.Env):
 
     def reset(self):
         self.game = Backgammon()
-        self.current_player = 1
+        white_roll = np.random.randint(1, 7)
+        black_roll = np.random.randint(1, 7)
+        # According to the Long Nardy rule, the higher roll becomes White, and White moves first.
+        self.current_player = 1 if white_roll >= black_roll else -1
         return self._get_obs()
 
     def render(self, mode='human'):

@@ -49,15 +49,15 @@ class Backgammon:
                         moves.append((pos, new_pos))
                 elif new_pos < 0:
                     # Check if bearing off is possible
-                    if np.sum(self.board[6:]) == 0:  # All checkers in home quadrant
+                    if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers in home quadrant
                         # For extra-large die, check if no lower-point checkers
-                        if pos + die > 24 or np.sum(self.board[:pos]) == 0:
+                        if pos + die > 24 or np.sum(np.maximum(board[:pos],0)) == 0:
                             moves.append((pos, 'off'))
-        return self._validate_head_moves(moves, roll, 
-            self.first_turn_white if board[23] > 0 else self.first_turn_black)
+        first_turn = self.first_turn_white if current_player == 1 else self.first_turn_black
+        return self._validate_head_moves(moves, roll, first_turn)
 
     def _validate_head_moves(self, moves, roll, first_turn):
-        head_pos = 23  # Always current player's head
+        head_pos = 23 # Always current player's head
         head_checkers = self.board[head_pos]
 
         # Head rule logic using current player's perspective
@@ -88,5 +88,13 @@ class Backgammon:
                 self.board[to_pos] -= 1
 
     def _filter_head_moves(self, moves, head_pos, max_head_moves):
-        # Placeholder for head move filtering logic
-        return moves
+        allowed_moves = []
+        head_moves_count = 0
+        for move in moves:
+            if move[0] == head_pos:
+                if head_moves_count < max_head_moves:
+                    allowed_moves.append(move)
+                    head_moves_count += 1
+            else:
+                allowed_moves.append(move)
+        return allowed_moves
