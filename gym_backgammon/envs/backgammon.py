@@ -33,9 +33,9 @@ class Backgammon:
         else:
             self.first_turn_black = False
 
-    def get_valid_moves(self, roll):
+    def get_valid_moves(self, roll, current_player=1):
+        board = self.board if current_player == 1 else rotate_board(self.board)
         moves = []
-        board = self.board  # Already in current player's perspective
         direction = -1  # Always move counter-clockwise
 
         for die in roll:
@@ -51,13 +51,13 @@ class Backgammon:
                     # Check if bearing off is possible
                     if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers in home quadrant
                         # For extra-large die, check if no lower-point checkers
-                        if pos + die > 24 or np.sum(np.maximum(board[:pos],0)) == 0:
+                        if pos + die > 24 or np.sum(np.maximum(board[:pos], 0)) == 0:
                             moves.append((pos, 'off'))
         first_turn = self.first_turn_white if current_player == 1 else self.first_turn_black
         return self._validate_head_moves(moves, roll, first_turn)
 
     def _validate_head_moves(self, moves, roll, first_turn):
-        head_pos = 23 # Always current player's head
+        head_pos = 23  # Always current player's head
         head_checkers = self.board[head_pos]
 
         # Head rule logic using current player's perspective
