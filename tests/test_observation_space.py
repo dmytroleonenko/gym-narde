@@ -1,7 +1,7 @@
 import gym
 
 if __name__ == '__main__':
-    env = gym.make('gym_backgammon:backgammon-v0')
+    env = gym.make('gym_narde:narde-v0')
     assert env.observation_space.low[0] == 0.0 and env.observation_space.high[0] == 1.0
     assert env.observation_space.low[1] == 0.0 and env.observation_space.high[1] == 1.0
     assert env.observation_space.low[2] == 0.0 and env.observation_space.high[2] == 1.0

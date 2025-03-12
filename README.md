@@ -1,11 +1,11 @@
 
-<h1 align="center">Backgammon OpenAI Gym</h1> <br>
+<h1 align="center">Narde OpenAI Gym</h1> <br>
 <p align="center">
-   <img alt="Backgammon" title="Backgammon" src="./logo.png" width="350">
+   <img alt="Narde" title="Narde" src="./logo.png" width="350">
 </p>
 
 # Table of Contents
-- [gym-backgammon](#gym_backgammon)
+- [gym-narde](#gym_narde)
 - [Installation](#installation)
 - [Environment](#env)
     - [Observation](#observation)
@@ -18,22 +18,22 @@
     - [Example](#example)
         - [Play random Agents](#play)
         - [Valid actions](#valid_actions)
-- [Backgammon Versions](#versions)
+- [Narde Versions](#versions)
 - [Useful links and related works](#useful_links)
 - [License](#license)
 
 ---
-## <a name="gym_backgammon"></a>gym-backgammon
-The backgammon game is a 2-player game that involves both the movement of the checkers and also the roll of the dice. The goal of each player is to move all of his checkers off the board.  
+## <a name="gym_narde"></a>gym-narde
+The narde game is a 2-player game that involves both the movement of the checkers and also the roll of the dice. The goal of each player is to move all of his checkers off the board.  
 
-This repository contains a Backgammon game implementation in OpenAI Gym.   
+This repository contains a Narde game implementation in OpenAI Gym.   
 Given the current state of the board, a roll of the dice, and the current player, it computes all the legal actions/moves (iteratively) that the current player can execute.  The legal actions are generated in a such a way that they uses the highest number of dice (if possible) for that state and player.  
 
 ---
 ## <a name="installation"></a>Installation
 ```
-git clone https://github.com/dellalibera/gym-backgammon.git
-cd gym-backgammon/
+git clone https://github.com/dellalibera/gym-narde.git
+cd gym-narde/
 pip3 install -e .
 ```
 
@@ -142,7 +142,7 @@ The method `reset()` returns:
 ### <a name="rendering"></a>Rendering
 If `render(mode = 'rgb_array')` or `render(mode = 'state_pixels')` are selected, this is the output obtained (on multiple steps):
 <p align="center">
-   <img alt="Backgammon" title="Backgammon" src="./board.gif" width="450">
+   <img alt="Narde" title="Narde" src="./board.gif" width="450">
 </p>
 
 ---
@@ -212,13 +212,13 @@ Legal Actions:
 ```
 ---
 
-## <a name="versions"></a>Backgammon Versions 
-### `backgammon-v0`
-The above description refers to `backgammon-v0`.
+## <a name="versions"></a>Narde Versions 
+### `narde-v0`
+The above description refers to `narde-v0`.
 
-### `backgammon-pixel-v0`
+### `narde-pixel-v0`
 The state is represented by `(96, 96, 3)` feature vector.    
-It is the only difference w.r.t `backgammon-v0`.
+It is the only difference w.r.t `narde-v0`.
 
 An example of the board representation:
 <p align="center">
@@ -231,20 +231,20 @@ An example of the board representation:
 - [1][Implementation Details TD-Gammon](http://www.scholarpedia.org/article/User:Gerald_Tesauro/Proposed/Td-gammon)
 - [2][Practical Issues in Temporal Difference Learning](https://papers.nips.cc/paper/465-practical-issues-in-temporal-difference-learning.pdf)
 <br><br>   
-- Rules of Backgammon:
+- Rules of Narde:
     - www.bkgm.com/rules.html
-    - https://en.wikipedia.org/wiki/Backgammon
+    - https://en.wikipedia.org/wiki/Narde
     - <a name="starting_position"></a>Starting Position: http://www.bkgm.com/gloss/lookup.cgi?starting+position
     - https://bkgm.com/faq/
 <br><br>   
-- Other Implementation of TD-Gammon and the game of Backgammon:
+- Other Implementation of TD-Gammon and the game of Narde:
     - https://github.com/TobiasVogt/TD-Gammon
     - https://github.com/millerm/TD-Gammon
     - https://github.com/fomorians/td-gammon
 <br><br>
-- Other Implementation of the Backgammon OpenAI Gym Environment: 
-    - https://github.com/edusta/gym-backgammon
+- Other Implementation of the Narde OpenAI Gym Environment: 
+    - https://github.com/edusta/gym-narde
 
 ---
 ## <a name="license"></a>License
-[MIT](https://github.com/dellalibera/gym-backgammon/blob/master/LICENSE) 
+[MIT](https://github.com/dellalibera/gym-narde/blob/master/LICENSE) 

@@ -3,10 +3,10 @@ import time
 from itertools import count
 import random
 import numpy as np
-from gym_backgammon.envs.backgammon import WHITE, BLACK, COLORS, TOKEN
+from gym_narde.envs.narde import WHITE, BLACK, COLORS, TOKEN
 
-env = gym.make('gym_backgammon:backgammon-v0')
-# env = gym.make('gym_backgammon:backgammon-pixel-v0')
+env = gym.make('gym_narde:narde-v0')
+# env = gym.make('gym_narde:narde-pixel-v0')
 
 random.seed(0)
 np.random.seed(0)
