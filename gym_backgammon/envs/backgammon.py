@@ -52,6 +52,19 @@ class Backgammon:
                     if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers are in the home quadrant
                         if die >= pos + 1:
                             moves.append((pos, 'off'))
+        # --- NEW: Filter out moves that create an illegal block (Rule 8) ---
+        filtered_moves = []
+        for move in moves:
+            board_copy = board.copy()
+            if move[1] == 'off':
+                board_copy[move[0]] -= 1
+            else:
+                board_copy[move[0]] -= 1
+                board_copy[move[1]] += 1
+            if not self._violates_block_rule(board_copy):
+                filtered_moves.append(move)
+        moves = filtered_moves
+        # --- End of new block ---
         first_turn = self.first_turn_white if current_player == 1 else self.first_turn_black
         return self._validate_head_moves(moves, roll, first_turn)
 
