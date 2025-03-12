@@ -33,6 +33,7 @@ class Backgammon:
             self.first_turn_black = False
 
     def get_valid_moves(self, roll, current_player=1):
+        roll = sorted(roll, reverse=True)
         board = self.board if current_player == 1 else rotate_board(self.board)
         moves = []
         direction = -1  # Always move counter-clockwise
@@ -56,7 +57,6 @@ class Backgammon:
 
     def _validate_head_moves(self, moves, roll, first_turn):
         head_pos = 23  # Always current player's head
-        head_checkers = self.board[head_pos]
 
         # Head rule logic using current player's perspective
         if first_turn and sorted(roll) in [[3,3], [4,4], [6,6]]:
