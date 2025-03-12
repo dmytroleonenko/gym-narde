@@ -109,3 +109,31 @@ class Narde:
             else:
                 allowed_moves.append(move)
         return allowed_moves
+
+    def _violates_block_rule(self, board):
+        """
+        Checks whether the board (in the current player's perspective)
+        contains a contiguous block of 6 or more checkers (positive numbers)
+        that traps all opponent checkers (i.e. no opponent checker—negative—
+        is found ahead of the block), where 'ahead' means at any index lower than
+        the first index of the block).
+        """
+        i = 0
+        while i < 24:
+            if board[i] > 0:
+                block_start = i
+                block_total = board[i]
+                # Continue forward (i.e. increasing index) to find contiguous points with checkers.
+                j = i + 1
+                while j < 24 and board[j] > 0:
+                    block_total += board[j]
+                    j += 1
+                if block_total >= 6:
+                    # 'Ahead' of the block means indices 0 .. block_start-1.
+                    # If no opponent checker (negative value) is found there, the move violates Rule 8.
+                    if not np.any(board[:block_start] < 0):
+                        return True
+                i = j
+            else:
+                i += 1
+        return False
