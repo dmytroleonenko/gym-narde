@@ -30,8 +30,11 @@ class BackgammonEnv(gym.Env):
         reward = 1 if done else 0
         return self._get_obs(), reward, done, {}
 
-    def _check_winner(self):
-        return np.sum(np.abs(self.game.board)) == 15
+    def _check_game_ended(self):
+        # Check if either player has no checkers left
+        current_has_won = np.sum(self.game.board > 0) == 0  # Current perspective's player
+        opponent_has_won = np.sum(self.game.board < 0) == 0  # Other player
+        return current_has_won or opponent_has_won
 
     def reset(self):
         self.game = Backgammon()
