@@ -1,15 +1,19 @@
-import gym
+import gymnasium as gym
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
-from gym_backgammon.envs.backgammon import Narde
+from gym_narde.envs.narde import Narde
 
 class NardeEnv(gym.Env):
-    def __init__(self):
+    metadata = {"render_modes": ["human"], "render_fps": 4}
+    
+    def __init__(self, render_mode=None):
         super(NardeEnv, self).__init__()
 
         self.game = Narde()
         self.current_player = 1  # Always white perspective
+        
+        self.render_mode = render_mode
 
         self.observation_space = spaces.Box(low=-15, high=15, shape=(24,), dtype=np.int32)
         self.action_space = spaces.Tuple((
@@ -31,23 +35,62 @@ class NardeEnv(gym.Env):
             done, reward = self._check_game_ended()
             if not done:
                 self.current_player *= -1
-            return self._get_obs(), reward, done, {}
+            # New API: return observation, reward, terminated, truncated, info
+            return self._get_obs(), reward, done, False, {}
 
         elif len(valid_moves) == 1:
             # Only one legal move—that is, using the higher die.
             self.game.execute_rotated_move(valid_moves[0], self.current_player)
         else:
             move1_code, move2_code = action
-            move1 = (move1_code // 24, move1_code % 24)
-            move2 = (move2_code // 24, move2_code % 24)
+            from_pos1 = move1_code // 24
+            to_pos1 = move1_code % 24
+            
+            # Check if this is a bearing off move (to_pos == 0 and from_pos in 0-5)
+            if to_pos1 == 0 and 0 <= from_pos1 <= 5:
+                move1 = (from_pos1, 'off')
+            else:
+                move1 = (from_pos1, to_pos1)
+            
+            from_pos2 = move2_code // 24
+            to_pos2 = move2_code % 24
+            
+            # Check if second move is a bearing off move
+            if to_pos2 == 0 and 0 <= from_pos2 <= 5:
+                move2 = (from_pos2, 'off')
+            else:
+                move2 = (from_pos2, to_pos2)
             if move1 in valid_moves:
                 self.game.execute_rotated_move(move1, self.current_player)
                 # Recalculate valid moves for the remaining die after move1 is executed.
-                # (You need to select the remaining die value from dice; for example:)
-                remaining_die = [d for d in dice if d != (abs(move1[0] - (move1[1] if move1[1] != 'off' else 0)))][0]
-                new_valid_moves = self.game.get_valid_moves([remaining_die], self.current_player)
-                if move2 in new_valid_moves:
-                    self.game.execute_rotated_move(move2, self.current_player)
+                # Try to determine which die was used for the first move
+                try:
+                    # Calculate the move distance
+                    if move1[1] == 'off':
+                        # Special case for bearing off
+                        # For bearing off, we need a die >= (point_position + 1)
+                        move_distance = move1[0] + 1
+                    else:
+                        move_distance = abs(move1[0] - move1[1])
+                    
+                    # Find matching die or closest die
+                    temp_dice = dice.copy()
+                    if move_distance in temp_dice:
+                        temp_dice.remove(move_distance)
+                    else:
+                        # If no exact match, remove the first die
+                        if temp_dice:
+                            temp_dice.pop(0)
+                    
+                    # Check if there are any remaining dice
+                    if temp_dice:
+                        # Get valid moves for the remaining dice
+                        new_valid_moves = self.game.get_valid_moves(temp_dice, self.current_player)
+                        if move2 in new_valid_moves:
+                            self.game.execute_rotated_move(move2, self.current_player)
+                except Exception as e:
+                    # If any exception occurs, just continue without executing the second move
+                    pass
 
         # Check if game ended and compute reward
         done, reward = self._check_game_ended()
@@ -56,9 +99,14 @@ class NardeEnv(gym.Env):
         if not done:
             self.current_player *= -1
             
-        return self._get_obs(), reward, done, {}
+        # New API: return observation, reward, terminated, truncated, info
+        return self._get_obs(), reward, done, False, {}
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
+        # Initialize RNG if seed is provided
+        if seed is not None:
+            np.random.seed(seed)
+            
         self.game = Narde()
         while True:
             white_roll = np.random.randint(1, 7)
@@ -67,15 +115,18 @@ class NardeEnv(gym.Env):
                 break
         # The winning player (strictly higher roll) becomes White; otherwise Black.
         self.current_player = 1 if white_roll > black_roll else -1
-        return self._get_obs()
+        
+        # Return observation and info dict according to new API
+        return self._get_obs(), {}
 
-    def render(self, mode='human'):
-        board_str = ""
-        for i in range(24):
-            board_str += f"{self.game.board[i]:>3} "
-            if (i + 1) % 6 == 0:
-                board_str += "\n"
-        print(board_str)
+    def render(self):
+        if self.render_mode == "human":
+            board_str = ""
+            for i in range(24):
+                board_str += f"{self.game.board[i]:>3} "
+                if (i + 1) % 6 == 0:
+                    board_str += "\n"
+            print(board_str)
 
     def close(self):
         pass

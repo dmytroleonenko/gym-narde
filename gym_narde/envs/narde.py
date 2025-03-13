@@ -1,7 +1,21 @@
+'''
+Nardy Rules - Long Nardy – Ultra-Short (for LLM):
+    1. Setup: White’s 15 checkers on point 24; Black’s 15 on point 12.
+    2. Movement: Both move checkers CCW into home (White 1–6, Black 13–18), then bear off.
+    3. Starting: Each rolls 1 die; higher is White and goes first.
+    4. Turns: Roll 2 dice, move checkers exactly by each value. No landing on opponent. If no moves exist, skip; if only one is possible, use the higher die.
+    5. Head Rule: Only 1 checker may leave the head (White 24, Black 12) per turn. Exception on the first turn: if you roll double 6, 4, or 3, you can move 2 checkers from the head; after that, no more head moves.
+    6. Bearing Off: Once all your checkers reach home, bear them off with exact or higher rolls.
+    7. Ending/Scoring: Game ends when someone bears off all. If the loser has none off, winner scores 2 (mars); otherwise 1 (oin). Some events allow a last roll to tie.
+    8. Block (Bridge): You cannot form a contiguous block of 6 checkers unless at least 1 opponent checker is still ahead of it. Fully trapping all 15 opponent checkers is banned—even a momentary 6‑block that would leave no opponent checkers in front is disallowed.
+'''
+
 import numpy as np
+
 
 def rotate_board(board):
     return np.concatenate((-board[12:], -board[:12])).astype(np.int32)
+
 
 class Narde:
     def __init__(self):
@@ -21,11 +35,20 @@ class Narde:
 
     def execute_rotated_move(self, move, current_player):
         if current_player != 1:
-            from_pos, to_pos = [(m + 12) % 24 for m in move]
-            self._execute_move((from_pos, to_pos))
-            # Removed board rotation to keep self.board in white perspective.
+            # For black player, need to rotate positions
+            from_pos, to_pos = move
+            # Handle "off" special case for bearing off
+            if to_pos == 'off':
+                # Don't rotate 'off' destination, but do rotate the source position correctly
+                rotated_move = ((from_pos + 12) % 24, 'off')
+            else:
+                # For normal moves, rotate both positions
+                rotated_move = ((from_pos + 12) % 24, (to_pos + 12) % 24)
+            self._execute_move(rotated_move)
         else:
+            # For white player, use the move as is
             self._execute_move(move)
+                
         # After executing, mark first turn as done for the current player.
         if current_player == 1:
             self.first_turn_white = False
@@ -72,11 +95,14 @@ class Narde:
         head_pos = 23  # Always current player's head
 
         # Head rule logic using current player's perspective
+        # According to Rule 5: Only 1 checker may leave the head per turn.
+        # With an exception on the first turn for doubles 3, 4, or 6.
         if first_turn and sorted(roll) in [[3,3], [4,4], [6,6]]:
-            max_head_moves = 2
+            max_head_moves = 2  # Special case for first turn with specific doubles
         else:
-            max_head_moves = 1 if first_turn else 0
-
+            max_head_moves = 1  # Standard case: 1 checker from head per turn
+            
+        # Apply the head rule filtering
         return self._filter_head_moves(moves, head_pos, max_head_moves)
 
     def _execute_move(self, move):
@@ -116,24 +142,51 @@ class Narde:
         contains a contiguous block of 6 or more checkers (positive numbers)
         that traps all opponent checkers (i.e. no opponent checker—negative—
         is found ahead of the block), where 'ahead' means at any index lower than
-        the first index of the block).
+        the first index of the block.
+        
+        In Narde, 'ahead' means positions that will be encountered in the direction
+        of movement (counter-clockwise), which are positions with lower indices.
         """
+        # Look for continuous blocks of the current player's checkers (positive values)
         i = 0
         while i < 24:
+            # Find start of a block of current player's checkers
             if board[i] > 0:
                 block_start = i
-                block_total = board[i]
-                # Continue forward (i.e. increasing index) to find contiguous points with checkers.
+                block_end = i
+                block_length = 1  # Count consecutive points, not total checkers
+                
+                # Find end of continuous block
                 j = i + 1
                 while j < 24 and board[j] > 0:
-                    block_total += board[j]
+                    block_length += 1
+                    block_end = j
                     j += 1
-                if block_total >= 6:
-                    # 'Ahead' of the block means indices 0 .. block_start-1.
-                    # If no opponent checker (negative value) is found there, the move violates Rule 8.
-                    if not np.any(board[:block_start] < 0):
+                    
+                # Check if block is 6 or more consecutive points
+                if block_length >= 6:
+                    # 'Ahead' of the block means lower indices (0 to block_start-1)
+                    # Check if any opponent checkers exist ahead of the block
+                    has_opponent_ahead = False
+                    for k in range(0, block_start):
+                        if board[k] < 0:
+                            has_opponent_ahead = True
+                            break
+                    
+                    # If no opponent checkers ahead, this violates Rule 8
+                    if not has_opponent_ahead:
                         return True
-                i = j
+                        
+                i = j  # Move past the end of this block
             else:
-                i += 1
+                i += 1  # No block at this position, move to next
+                
         return False
+
+    def validate_move(self, move, roll, current_player=1):
+        """
+        Validates if the given move is in the list of legal moves for a given roll and player.
+        Returns True if valid, False otherwise.
+        """
+        valid_moves = self.get_valid_moves(roll, current_player)
+        return move in valid_moves
