@@ -9,6 +9,7 @@ class App {
       selectedPiece: null,
       validDestinations: []
     };
+    this.headMoveUsed = false;
     this.init();
     this.bindComm();
   }
@@ -72,19 +73,19 @@ class App {
     comm.subscribe('pieceSelected', (detail) => {
       console.log('App handling pieceSelected:', detail);
       const { piece, dragStarted } = detail;
-      
+  
       // Check for head rule (position 23 for white)
       if (piece.position === 23) {
         // If we already made a head move and this isn't a special case, show notification
-        if (this.gameState.headMoveMade && !this.isSpecialDoublesCase()) {
+        if (this.headMoveUsed && !this.isSpecialDoublesCase()) {
           this.boardContainer.showHeadRuleNotification(true);
           return;
         }
       }
-      
+  
       // Set the selected piece
       this.gameState.selectedPiece = piece.position;
-      
+  
       // Get valid moves for this piece
       comm.send('getValidMoves', { position: piece.position });
     });
@@ -126,6 +127,7 @@ class App {
           this.gameState.selectedPiece = null;
           this.gameState.validDestinations = [];
           this.gameState.headMoveMade = false; // Reset head move tracking on new roll
+          this.headMoveUsed = false;
           
           // Reset any rule visualizations
           this.resetRuleVisualizations();
@@ -141,6 +143,7 @@ class App {
             validDestinations: [],
             headMoveMade: false
           };
+          this.headMoveUsed = false;
           
           // Reset any rule visualizations
           this.resetRuleVisualizations();
@@ -151,6 +154,7 @@ class App {
           this.gameState.selectedPiece = null;
           this.gameState.validDestinations = [];
           this.gameState.headMoveMade = false; // Reset head move tracking on undo
+          this.headMoveUsed = false;
           
           // Reset any rule visualizations
           this.resetRuleVisualizations();
@@ -452,6 +456,9 @@ class App {
   attemptMove(fromPosition, toPosition) {
     // Check if this is a valid move
     if (this.gameState.validDestinations.includes(toPosition)) {
+      if (fromPosition === 23) {
+        this.headMoveUsed = true;
+      }
       // Send move to server
       comm.send('makeMove', {
         fromPosition: fromPosition,
