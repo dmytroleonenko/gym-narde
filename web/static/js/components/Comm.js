@@ -87,8 +87,6 @@ Comm.prototype = {
       case 'rollDice':
       case 'roll':
         return window.api.reqRollDice();
-      case 'newGame':
-        return window.api.reqNewGame();
       case 'confirmMove':
       case 'confirm':
         return window.api.reqConfirmMoves();

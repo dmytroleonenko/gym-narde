@@ -17,7 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const app = new App('backgammon');
   window.api = app.api;
   console.log("window.api has been set:", window.api);
-  comm.send('newGame');
+  if (!window.api) {
+    console.warn("API is not initialized yet. Delaying newGame call by 500ms");
+    setTimeout(() => comm.send('newGame'), 500);
+  } else {
+    comm.send('newGame');
+  }
   // Store app in global scope for debugging
   window.app = app;
   
