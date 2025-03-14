@@ -98,7 +98,7 @@ ApiWrapper.prototype = {
     .then(function(response) { return response.json(); })
     .then(function(data) {
       // Dispatch valid moves returned event
-      self.comm.dispatch('valid_moves_received', {
+      self.comm.dispatch('validMovesReceived', {
         position: position,
         validDestinations: data.valid_to_positions
       });
