@@ -76,8 +76,8 @@ class App {
   
       // Check for head rule (position 23 for white)
       if (piece.position === 23) {
-        // If we already made a head move and this isn't a special case, show notification
-        if (this.headMoveUsed && !this.isSpecialDoublesCase()) {
+        // If we already made a head move (tracked either locally or in game state) and this isn't a special case, show notification
+        if ((this.headMoveUsed || this.gameState.headMoveMade) && !this.isSpecialDoublesCase()) {
           this.boardContainer.showHeadRuleNotification(true);
           return;
         }
