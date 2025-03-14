@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css?family=Raleway:400,300,700" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/backgammon.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/ribbons.css') }}">
+  <title>Long Nardy</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #index-view, #game-view {
+      width: 100%;
+      height: 100%;
+    }
+    
+    #simple-board {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('https://img.freepik.com/free-photo/brown-wooden-textured-flooring-background_53876-108582.jpg');
+      background-size: cover;
+      z-index: 100;
+      font-family: "Raleway", sans-serif;
+    }
+    
+    .board-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: rgba(233, 196, 150, 0.85);
+      border-radius: 10px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    
+    .board-half {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 2px solid #5d4037;
+      position: relative;
+    }
+    
+    .board-section {
+      flex: 1;
+      display: flex;
+      position: relative;
+    }
+    
+    .board-section:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: #5d4037;
+    }
+    
+    .board-section:first-child:after {
+      bottom: 0;
+    }
+    
+    .board-section:last-child:after {
+      top: 0;
+    }
+    
+    .point {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      transition: all 0.2s;
+    }
+    
+    .point:hover {
+      background-color: rgba(255,255,255,0.2);
+      cursor: pointer;
+    }
+    
+    .point-light {
+      background-color: #e4d5bd;
+    }
+    
+    .point-dark {
+      background-color: #a67c52;
+    }
+    
+    .point-top:after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 15%;
+      width: 70%;
+      height: 90%;
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+      background-color: inherit;
+      transition: all 0.2s;
+    }
+    
+    .point-bottom:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 15%;
+      width: 70%;
+      height: 90%;
+      clip-path: polygon(50% 0%, 0 100%, 100% 100%);
+      background-color: inherit;
+      transition: all 0.2s;
+    }
+    
+    .point:hover:after {
+      box-shadow: 0 0 20px rgba(255,255,255,0.6);
+    }
+    
+    .point.selected {
+      background-color: rgba(76, 175, 80, 0.3);
+    }
+    
+    .point.selected:after {
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.9) !important;
+      border: 3px solid rgba(76, 175, 80, 0.9);
+    }
+    
+    .point.valid-destination {
+      background-color: rgba(33, 150, 243, 0.2);
+      cursor: pointer;
+    }
+    
+    .point.valid-destination:after {
+      box-shadow: 0 0 20px rgba(33, 150, 243, 0.8) !important;
+      animation: pulse 1.5s infinite alternate;
+      border: 3px dashed rgba(33, 150, 243, 0.8);
+    }
+    
+    .point.has-valid-moves:after {
+      box-shadow: 0 0 15px rgba(255, 193, 7, 0.7) !important;
+      animation: glow 1.5s infinite alternate;
+    }
+    
+    @keyframes glow {
+      0% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
+      100% { box-shadow: 0 0 20px rgba(255, 193, 7, 0.8); }
+    }
+    
+    /* AI move visualization */
+    .ai-move-source:after {
+      box-shadow: 0 0 20px rgba(244, 67, 54, 0.8) !important;
+      animation: aiMoveSource 1s ease-in-out;
+    }
+    
+    .ai-move-destination:after {
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.8) !important;
+      animation: aiMoveDest 1s ease-in-out;
+    }
+    
+    @keyframes aiMoveSource {
+      0% { box-shadow: 0 0 30px rgba(244, 67, 54, 0.9); }
+      100% { box-shadow: 0 0 10px rgba(244, 67, 54, 0.5); }
+    }
+    
+    @keyframes aiMoveDest {
+      0% { box-shadow: 0 0 30px rgba(76, 175, 80, 0.9); }
+      100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.5); }
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 15px rgba(33, 150, 243, 0.6); }
+      100% { box-shadow: 0 0 25px rgba(33, 150, 243, 0.9); }
+    }
+    
+    .center-bar {
+      width: 50px;
+      height: 100%;
+      background-color: #5d4037;
+      background-image: linear-gradient(to right, #3e2723, #5d4037, #3e2723);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    
+    .roll-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px;
+      font-size: 24px;
+      background-image: linear-gradient(to bottom, #4CAF50, #2E7D32);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 200;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.3s;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    
+    .roll-button:hover {
+      background-image: linear-gradient(to bottom, #43A047, #2E7D32);
+      transform: translate(-50%, -50%) scale(1.05);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    .roll-button:active {
+      transform: translate(-50%, -50%) scale(0.98);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .head-position:after {
+      box-shadow: inset 0 0 15px gold !important;
+    }
+    
+    .home-area:after {
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.5) !important;
+    }
+    
+    /* Piece styling */
+    .piece {
+      position: absolute;
+      width: 80%;
+      height: 40px;
+      border-radius: 50%;
+      left: 10%;
+      z-index: 10;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .piece.white {
+      background: linear-gradient(to bottom, #fff, #e6e6e6);
+      border: 2px solid #ccc;
+    }
+    
+    .piece.black {
+      background: linear-gradient(to bottom, #333, #111);
+      border: 2px solid #000;
+    }
+    
+    /* Dice styling */
+    .dice-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 150;
+      display: flex;
+      gap: 20px;
+      padding: 15px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .dice {
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      border: 2px solid #ccc;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    }
+    
+    .dice-dots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      width: 45px;
+      height: 45px;
+    }
+    
+    .dot {
+      width: 10px;
+      height: 10px;
+      background-color: black;
+      border-radius: 50%;
+      margin: auto;
+    }
+    
+    /* Game messages */
+    .game-message {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      z-index: 300;
+      font-size: 18px;
+      transition: all 0.3s;
+    }
+  </style>
+</head>
+<body id="page-index">
+  <!-- Landing page -->
+  <table id="index-view" width="100%" height="100%">
+  <tr>
+    <td height="100%" valign="middle">
+      <div id="github-ribbon" class="ribbon right hidden-xs"><a href="https://github.com/quasoft/backgammonjs">Project at GitHub</a></div>
+      <div class="container-fluid center">
+        <div class="row text-center">
+          <h1 class="text-center">Long Nardy<br>
+            <small>An Ancient Variant of Backgammon</small>
+          </h1>
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col col-xs-12 text-center">
+                <div id="rule-selector" class="btn-group" data-toggle="buttons">
+                  <!-- Rules selector will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col col-ts-12 col-xs-6 text-center">
+                <button id="btn-play-ai" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>Play against AI</button>
+              </div>
+              <div class="col col-ts-12 col-xs-6 text-center">
+                <button id="btn-challenge-friend" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-user" aria-hidden="true"></span>Challenge friend</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </td>
+  </tr>
+  </table>
+  
+  <!-- Game menu -->
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <span class="navbar-brand" id="match-state">Not in a match</span>
+      </div>
+      <div class="navbar-collapse">
+        <button type="button" class="btn btn-primary navbar-btn yourself" title="Your score in current match"><span id="yourself" class="player">Yourself</span><span id="yourscore" class="score badge">0</span></button>
+        <button type="button" class="btn btn-default navbar-btn opponent" title="Opponent's score in current match"><span id="oppscore" class="score badge left">0</span><span id="opponent" class="player">Opponent</span></button>
+        <ul class="nav navbar-nav navbar-right">
+          <li><a id="menu-resign" href="#" title="Resign from current game"><span class="glyphicon glyphicon-flag"></span>Resign</a></li>
+          <li><a id="menu-undo" href="#" title="Undo moves made"><span class="glyphicon glyphicon-repeat"></span>Undo</a></li>
+          <li><a id="menu-close" href="#" data-toggle="collapse" data-target=".navbar" title="Close game menu"><span class="glyphicon glyphicon-remove"></span>Close</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Game board -->
+  <table id="game-view" width="100%" height="100%" style="display: none">
+  <tr>
+    <td height="100%">
+      <div id="backgammon"></div>
+    </td>
+  </tr>
+  </table>
+  
+  <!-- Simple board layout directly in HTML -->
+  <div id="simple-board">
+    <div class="board-container">
+      <div class="board-half">
+        <div class="board-section">
+          <!-- Top left section (points 12-17) -->
+          <div class="point point-dark point-top" id="simple-point-12" data-position="12"></div>
+          <div class="point point-light point-top" id="simple-point-13" data-position="13"></div>
+          <div class="point point-dark point-top" id="simple-point-14" data-position="14"></div>
+          <div class="point point-light point-top" id="simple-point-15" data-position="15"></div>
+          <div class="point point-dark point-top" id="simple-point-16" data-position="16"></div>
+          <div class="point point-light point-top" id="simple-point-17" data-position="17"></div>
+        </div>
+        <div class="board-section">
+          <!-- Bottom left section (points 11-6) -->
+          <div class="point point-dark point-bottom head-position" id="simple-point-11" data-position="11"></div>
+          <div class="point point-light point-bottom" id="simple-point-10" data-position="10"></div>
+          <div class="point point-dark point-bottom" id="simple-point-9" data-position="9"></div>
+          <div class="point point-light point-bottom" id="simple-point-8" data-position="8"></div>
+          <div class="point point-dark point-bottom" id="simple-point-7" data-position="7"></div>
+          <div class="point point-light point-bottom" id="simple-point-6" data-position="6"></div>
+        </div>
+      </div>
+      
+      <div class="center-bar"></div>
+      
+      <div class="board-half">
+        <div class="board-section">
+          <!-- Top right section (points 18-23) -->
+          <div class="point point-dark point-top" id="simple-point-18" data-position="18"></div>
+          <div class="point point-light point-top" id="simple-point-19" data-position="19"></div>
+          <div class="point point-dark point-top" id="simple-point-20" data-position="20"></div>
+          <div class="point point-light point-top" id="simple-point-21" data-position="21"></div>
+          <div class="point point-dark point-top" id="simple-point-22" data-position="22"></div>
+          <div class="point point-light point-top head-position" id="simple-point-23" data-position="23"></div>
+        </div>
+        <div class="board-section">
+          <!-- Bottom right section (points 5-0) -->
+          <div class="point point-dark point-bottom" id="simple-point-5" data-position="5"></div>
+          <div class="point point-light point-bottom" id="simple-point-4" data-position="4"></div>
+          <div class="point point-dark point-bottom" id="simple-point-3" data-position="3"></div>
+          <div class="point point-light point-bottom" id="simple-point-2" data-position="2"></div>
+          <div class="point point-dark point-bottom" id="simple-point-1" data-position="1"></div>
+          <div class="point point-light point-bottom" id="simple-point-0" data-position="0"></div>
+        </div>
+      </div>
+    </div>
+    
+    <button class="roll-button" id="simple-roll-button">Roll Dice</button>
+    
+    <!-- Dice container (initially hidden) -->
+    <div class="dice-container" id="dice-container" style="display: none;">
+      <div class="dice">
+        <div class="dice-dots" id="dice1"></div>
+      </div>
+      <div class="dice">
+        <div class="dice-dots" id="dice2"></div>
+      </div>
+    </div>
+    
+    <!-- Game message container -->
+    <div class="game-message" id="game-message" style="display: none;">Your turn - make a move</div>
+  </div>
+  
+  <!-- Game results overlay -->
+  <div id="game-result-overlay" class="game-result overlay" style="display: none">
+    <div class="text message">Message</div>
+    <div class="text score"><span class="state">State</span><br><strong><span class="yourscore">0</span>&nbsp;:&nbsp;<span class="oppscore">0</span></strong></div>
+  </div>
+  
+  <!-- Waiting overlay -->
+  <div id="waiting-overlay" class="waiting overlay" style="display: none">
+    <div class="loader">
+      <div class="inner">
+        <span>Waiting another player...</span><br>
+        <img src="{{ url_for('static', filename='images/loader.gif') }}"><br>
+        <br>
+        <div class="challenge" style="display: none">
+          <span>Send <span class="hidden-xs">the</span> link <span class="hidden-xs">below</span> to friend:</span>
+          <div class="input-group input-group-lg">
+            <input id="challenge-link" type="text" class="form-control" value="">
+            <span class="input-group-btn">
+              <button class="btn btn-default btn-copy" type="button" data-clipboard-target="#challenge-link">Copy</button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Board template - will be inserted into #backgammon -->
+  <script type="text/x-template" id="tmpl-board">
+    <div id="frame-top" class="frame"></div>
+    <div class="board cf">
+      <div id="pane-left" class="pane">
+        <div id="field0" class="field row0 col0"></div>
+        <div id="field1" class="field row1 col0"></div>
+        <div class="dice-panel left" style="display: none">
+          <div id="dice-left" class="dice left"></div>
+        </div>
+      </div>
+      <div id="bar" class="bar">
+        <table width="100%" height="100%">
+        <tr height="10%">
+          <td valign="top">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar" aria-expanded="false" title="Show/Hide game menu">
+              <span class="sr-only">Toggle game menu</span>
+              <span class="glyphicon glyphicon-menu-hamburger"></span>
+            </button>
+          </td>
+        </tr>
+        <tr height="45%">
+          <td valign="top" id="top-bar"></td>
+        </tr>
+        <tr height="45%">
+          <td valign="bottom" id="bottom-bar"></td>
+        </tr>
+        </table>
+      </div>
+      <div id="pane-right" class="pane">
+        <div id="field2" class="field row0 col1"></div>
+        <div id="field3" class="field row1 col1"></div>
+        <div class="dice-panel right" style="display: none">
+          <div id="dice-right" class="dice right"></div>
+        </div>
+        <!-- Add bearing off area for Long Nardy -->
+        <div id="bearing-off" class="bearing-off" title="Bear off pieces"></div>
+      </div>
+    </div>
+    <div id="frame-bottom" class="frame"></div>
+    <div class="action-panel">
+      <button id="btn-roll" class="btn btn-primary btn-lg action" style="display: none" title="Roll dice">Roll</button>
+      <button id="btn-confirm" class="btn btn-primary btn-lg action" style="display: none" title="Confirm moves made">Confirm</button>
+      <button id="btn-undo" class="btn btn-default btn-lg action" style="display: none" title="Undo moves made">Undo</button>
+      <div id="dice" style="display: none"></div>
+    </div>
+  </script>
+  
+  <!-- Template for rule selector item -->
+  <script type="text/x-template" id="tmpl-rule-selector-item">
+    <label class="btn btn-default btn-lg {{active}}">
+      <input type="radio" name="rule-selected" value="{{name}}" autocomplete="off" {{checked}}> {{title}}
+    </label>
+  </script>
+  
+  <!-- Load required JavaScript libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script>
+  
+  <!-- Load our application JavaScript -->
+  <script src="{{ url_for('static', filename='js/lib/model.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/Comm.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/ApiWrapper.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/SimpleBoardUI.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/App.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/MoveValidator.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Document ready');
+      
+      // Global state for game logic
+      const gameState = {
+        board: Array(24).fill(0),
+        currentPlayer: 'white',
+        dice: [],
+        selectedPosition: null,
+        validDestinations: [],
+        gameInProgress: false,
+        usedDice: [] // Track which dice have been used
+      };
+      
+      // Initialize board with starting positions
+      function initializeBoard() {
+        // Clear all pieces
+        document.querySelectorAll('.piece').forEach(piece => piece.remove());
+        
+        // White pieces starting at position 23 (15 pieces)
+        createPieces(23, 15, 'white');
+        
+        // Black pieces starting at position 11 (15 pieces)
+        createPieces(11, 15, 'black');
+        
+        // Update game state
+        gameState.board = Array(24).fill(0);
+        gameState.board[23] = 15;  // 15 white pieces at position 23
+        gameState.board[11] = -15; // 15 black pieces at position 11
+        
+        // Clear selection state
+        gameState.selectedPosition = null;
+        gameState.validDestinations = [];
+      }
+      
+      // Create pieces at a specific position
+      function createPieces(position, count, color) {
+        const point = document.getElementById('simple-point-' + position);
+        if (!point) return;
+        
+        const isTop = point.classList.contains('point-top');
+        
+        for (let i = 0; i < count; i++) {
+          const piece = document.createElement('div');
+          piece.className = 'piece ' + color;
+          piece.id = 'piece-' + color + '-' + i;
+          
+          // Position the piece vertically based on its order and section
+          if (isTop) {
+            piece.style.top = (10 + i * 10) + 'px';
+          } else {
+            piece.style.bottom = (10 + i * 10) + 'px';
+          }
+          
+          point.appendChild(piece);
+        }
+      }
+      
+      // Generate dot patterns for dice
+      function renderDice(dice1Value, dice2Value) {
+        const dice1 = document.getElementById('dice1');
+        const dice2 = document.getElementById('dice2');
+        
+        dice1.innerHTML = '';
+        dice2.innerHTML = '';
+        
+        const dotPatterns = {
+          1: [4],
+          2: [0, 8],
+          3: [0, 4, 8],
+          4: [0, 2, 6, 8],
+          5: [0, 2, 4, 6, 8],
+          6: [0, 2, 3, 5, 6, 8]
+        };
+        
+        // Create dots for dice 1
+        dotPatterns[dice1Value].forEach(position => {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.style.gridArea = `${Math.floor(position / 3) + 1} / ${position % 3 + 1}`;
+          dice1.appendChild(dot);
+        });
+        
+        // Create dots for dice 2
+        dotPatterns[dice2Value].forEach(position => {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.style.gridArea = `${Math.floor(position / 3) + 1} / ${position % 3 + 1}`;
+          dice2.appendChild(dot);
+        });
+      }
+      
+      // Roll dice with animation
+      function rollDice() {
+        const diceContainer = document.getElementById('dice-container');
+        diceContainer.style.display = 'flex';
+        
+        // Simple dice roll animation
+        let rolls = 0;
+        const maxRolls = 10;
+        const rollInterval = setInterval(() => {
+          const dice1Value = Math.floor(Math.random() * 6) + 1;
+          const dice2Value = Math.floor(Math.random() * 6) + 1;
+          renderDice(dice1Value, dice2Value);
+          
+          rolls++;
+          if (rolls >= maxRolls) {
+            clearInterval(rollInterval);
+            gameState.dice = [dice1Value, dice2Value].sort((a, b) => b - a); // Sort descending
+            console.log('Rolled dice:', gameState.dice);
+            
+            // Show game message
+            const gameMessage = document.getElementById('game-message');
+            gameMessage.textContent = 'Your turn - make a move';
+            gameMessage.style.display = 'block';
+            
+            // Get valid moves from the server
+            if (gameState.gameInProgress) {
+              comm.send('getValidMoves', { position: 23 }); // Requesting valid moves for head position
+            }
+          }
+        }, 100);
+      }
+      
+      // Handle communication events
+      comm.subscribe('gameStateChanged', function(data) {
+        console.log('Game state received:', data);
+        
+        // Update game state
+        gameState.board = data.board;
+        gameState.currentPlayer = data.currentPlayer;
+        gameState.dice = data.dice || [];
+        gameState.gameInProgress = true; // Mark game as in progress when state is received
+        
+        // Redraw the board based on the received state
+        updateBoardDisplay(data.board);
+        
+        // Show game message
+        const gameMessage = document.getElementById('game-message');
+        if (data.currentPlayer === 'white') {
+          gameMessage.textContent = 'Your turn - make a move';
+        } else {
+          gameMessage.textContent = "AI's turn...";
+        }
+        gameMessage.style.display = 'block';
+        
+        // Show dice if provided
+        if (data.dice && data.dice.length === 2) {
+          const diceContainer = document.getElementById('dice-container');
+          diceContainer.style.display = 'flex';
+          renderDice(data.dice[0], data.dice[1]);
+        }
+        
+        // If it's the player's turn and there are pieces in position 23, request valid moves
+        if (data.currentPlayer === 'white' && data.board[23] > 0) {
+          console.log('Automatically requesting valid moves for position 23');
+          setTimeout(() => {
+            comm.send('getValidMoves', { position: 23 });
+          }, 500);
+        }
+      });
+      
+      // Update the board display based on the board array
+      function updateBoardDisplay(boardArray) {
+        // Clear all pieces
+        document.querySelectorAll('.piece').forEach(piece => piece.remove());
+        
+        // Add pieces based on the board array
+        for (let position = 0; position < 24; position++) {
+          const value = boardArray[position];
+          if (value !== 0) {
+            const color = value > 0 ? 'white' : 'black';
+            const count = Math.abs(value);
+            createPieces(position, count, color);
+          }
+        }
+      }
+      
+      // Set up button click handlers
+      document.getElementById('btn-play-ai').addEventListener('click', function() {
+        console.log('Play against AI button clicked');
+        
+        // Hide landing page
+        document.getElementById('index-view').style.display = 'none';
+        
+        // Display our simple board
+        document.getElementById('simple-board').style.display = 'block';
+        
+        // Mark home areas (for visual indication)
+        for (var i = 0; i <= 5; i++) {
+          document.getElementById('simple-point-' + i).classList.add('home-area');
+        }
+        for (var i = 12; i <= 17; i++) {
+          document.getElementById('simple-point-' + i).classList.add('home-area');
+        }
+        
+        // Initialize the board with starting positions
+        initializeBoard();
+        
+        // Set up the roll button click handler
+        document.getElementById('simple-roll-button').addEventListener('click', function() {
+          console.log('Roll button clicked');
+          
+          // Hide the roll button
+          this.style.display = 'none';
+          
+          // Check if we're already in a game
+          if (gameState.gameInProgress) {
+            console.log('Game in progress, rolling dice for current game');
+            
+            // Roll dice for current game
+            fetch('/api/roll_dice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log('Roll dice API response:', data);
+              
+              if (data.error) {
+                console.error('Error rolling dice:', data.error);
+                return;
+              }
+              
+              // Update game state with server response
+              if (data.board) gameState.board = data.board;
+              if (data.current_player) gameState.currentPlayer = data.current_player;
+              if (data.dice) gameState.dice = data.dice;
+              
+              // Reset used dice for new turn
+              gameState.usedDice = [];
+              
+              // Reset head moves counter for new turn
+              gameState.headMovesMade = 0;
+              
+              // Show the dice from the server response
+              if (data.dice && data.dice.length === 2) {
+                console.log('Using server dice values:', data.dice);
+                const diceContainer = document.getElementById('dice-container');
+                diceContainer.style.display = 'flex';
+                renderDice(data.dice[0], data.dice[1]);
+              }
+              
+              // Clear previous selections and highlights before processing new moves
+              document.querySelectorAll('.point').forEach(p => 
+                p.classList.remove('selected', 'valid-destination', 'has-valid-moves', 'ai-move-source', 'ai-move-destination')
+              );
+              gameState.selectedPosition = null;
+              gameState.validDestinations = [];
+              
+              // Reset stored valid moves to prevent stale data
+              gameState.validMovesByPiece = {};
+              
+              // Before processing moves, ensure we handle head rule correctly
+              if (gameState.headMovesMade > 0) {
+                // If we've already made a head move, remove the head position
+                // from the valid moves unless this is special doubles
+                const isFirstTurnSpecialDoubles = 
+                  gameState.isFirstTurn && 
+                  gameState.dice && 
+                  gameState.dice.length >= 2 && 
+                  gameState.dice[0] === gameState.dice[1] && 
+                  [3, 4, 6].includes(gameState.dice[0]);
+                
+                if (gameState.headMovesMade >= (isFirstTurnSpecialDoubles ? 2 : 1) && 
+                    data.valid_moves_by_piece && 
+                    data.valid_moves_by_piece[gameState.HEAD_POSITIONS.white]) {
+                  console.log('Removing head position from valid moves before processing (head rule)');
+                  delete data.valid_moves_by_piece[gameState.HEAD_POSITIONS.white];
+                }
+              }
+              
+              // Process valid moves
+              processValidMoves(data);
+            })
+            .catch(error => console.error('Error rolling dice:', error));
+          } else {
+            // Start a new game for first roll
+            console.log('No game in progress, starting new game');
+            fetch('/api/new_game', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log('New game API response:', data);
+              
+              if (data.error) {
+                console.error('Error starting new game:', data.error);
+                return;
+              }
+              
+              // Update game state with server response
+              gameState.board = data.board;
+              gameState.currentPlayer = data.current_player;
+              gameState.dice = data.dice;
+              gameState.gameId = data.game_id;
+              gameState.gameInProgress = true;
+              gameState.usedDice = []; // Reset used dice for new game
+              gameState.headMovesMade = 0; // Reset head moves counter for new game
+            
+              // Update the board display
+              updateBoardDisplay(data.board);
+              
+              // Show the actual dice from the server response
+              if (data.dice && data.dice.length === 2) {
+                console.log('Using server dice values:', data.dice);
+                const diceContainer = document.getElementById('dice-container');
+                diceContainer.style.display = 'flex';
+                renderDice(data.dice[0], data.dice[1]);
+              }
+              
+              // Check if response has valid_moves_by_piece directly in this handler
+              // This ensures we store the valid moves data before processing
+              if (data.valid_moves_by_piece) {
+                // Save valid moves for future use
+                gameState.validMovesByPiece = {};
+                
+                // Convert string keys to numbers and store
+                Object.keys(data.valid_moves_by_piece).forEach(posStr => {
+                  const pos = parseInt(posStr);
+                  gameState.validMovesByPiece[pos] = [];
+                  
+                  // For each move from this position, extract destinations
+                  data.valid_moves_by_piece[posStr].forEach(move => {
+                    if (Array.isArray(move) && move.length >= 2) {
+                      let destPos = move[1];
+                      if (destPos === 'off') destPos = -1;
+                      gameState.validMovesByPiece[pos].push(destPos);
+                    }
+                  });
+                });
+                
+                console.log('Stored valid moves by piece:', gameState.validMovesByPiece);
+              }
+              
+              // Process valid moves from the response
+              processValidMoves(data);
+            })
+            .catch(error => console.error('Error starting new game:', error));
+          }
+        });
+        
+        // Process valid moves from server response
+        function processValidMoves(data) {
+          // Store valid moves by piece
+          if (data.valid_moves_by_piece) {
+            console.log('Raw valid_moves_by_piece from API:', data.valid_moves_by_piece);
+            
+            // Find all pieces with valid moves
+            let piecesWithValidMoves = Object.keys(data.valid_moves_by_piece).filter(pos => 
+              data.valid_moves_by_piece[pos] && data.valid_moves_by_piece[pos].length > 0
+            );
+            
+            console.log('Pieces with valid moves:', piecesWithValidMoves);
+            
+            if (piecesWithValidMoves.length > 0) {
+              // Highlight all positions with valid moves
+              piecesWithValidMoves.forEach(position => {
+                const pointElement = document.getElementById('simple-point-' + position);
+                if (pointElement) {
+                  pointElement.classList.add('has-valid-moves');
+                }
+              });
+              
+              // Show message
+              const gameMessage = document.getElementById('game-message');
+              gameMessage.textContent = 'Your turn - select a piece to move';
+              gameMessage.style.display = 'block';
+            } else {
+              // No valid moves
+              const gameMessage = document.getElementById('game-message');
+              gameMessage.textContent = 'No valid moves available';
+              gameMessage.style.display = 'block';
+            }
+          }
+        }
+        
+        // Add click handlers to all points
+        var points = document.querySelectorAll('.point');
+        points.forEach(function(point) {
+          point.addEventListener('click', function() {
+            const position = parseInt(this.dataset.position);
+            console.log('Point clicked:', position);
+            console.log('Current game state:', {
+              currentPlayer: gameState.currentPlayer,
+              gameInProgress: gameState.gameInProgress,
+              selectedPosition: gameState.selectedPosition,
+              validDestinations: gameState.validDestinations,
+              hasPieces: gameState.board[position] > 0
+            });
+            
+            // Only process clicks when it's the player's turn
+            if (gameState.currentPlayer !== 'white' || !gameState.gameInProgress) {
+              console.log('Not your turn or game not in progress');
+              return;
+            }
+            
+            // If we have a selected position and this is a valid destination, make the move
+            if (gameState.selectedPosition !== null && 
+                (gameState.validDestinations.includes(position) || 
+                 (gameState.validMovesByPiece && 
+                  gameState.validMovesByPiece[gameState.selectedPosition] && 
+                  gameState.validMovesByPiece[gameState.selectedPosition].includes(position)))) {
+                
+              // Extra safety check for head rule
+              if (gameState.selectedPosition === gameState.HEAD_POSITIONS?.white && gameState.headMovesMade > 0) {
+                // Only allow 2 head moves if it's first turn special doubles
+                const isFirstTurnSpecialDoubles = 
+                  gameState.isFirstTurn && 
+                  gameState.dice && 
+                  gameState.dice.length >= 2 && 
+                  gameState.dice[0] === gameState.dice[1] && 
+                  [3, 4, 6].includes(gameState.dice[0]);
+              
+                if (gameState.headMovesMade >= (isFirstTurnSpecialDoubles ? 2 : 1)) {
+                  console.log(`Blocking move from head position - already made ${gameState.headMovesMade} head moves`);
+                  
+                  // Show error message to user
+                  const gameMessage = document.getElementById('game-message');
+                  gameMessage.textContent = "Only one checker may leave the head position per turn";
+                  gameMessage.style.display = 'block';
+                  gameMessage.style.backgroundColor = '#f44336';
+                  gameMessage.style.color = 'white';
+                  
+                  // Auto-hide after 2 seconds
+                  setTimeout(() => {
+                    gameMessage.style.backgroundColor = '';
+                    gameMessage.style.color = '';
+                    gameMessage.textContent = 'Make your next move';
+                  }, 2000);
+                  
+                  return; // Skip the move
+                }
+              }
+              
+              console.log(`Making move from ${gameState.selectedPosition} to ${position}`);
+              
+              // Make the move with direct API call
+              fetch('/api/make_move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from_position: gameState.selectedPosition,
+                  to_position: position
+                })
+              })
+              .then(response => response.json())
+              .then(data => {
+                console.log('Move API response:', data);
+                
+                if (data.error) {
+                  console.error('Error making move:', data.error);
+                  return;
+                }
+                
+                // Calculate and track used die value
+                const fromPos = gameState.selectedPosition;
+                const toPos = position;
+                const dieValue = fromPos - toPos;
+                
+                // Add to used dice array
+                if (!gameState.usedDice) {
+                  gameState.usedDice = [];
+                }
+                gameState.usedDice.push(dieValue);
+                console.log(`Move from ${fromPos} to ${toPos} used die value ${dieValue}. Used dice: ${gameState.usedDice}`);
+                
+                // Track head moves
+                if (fromPos === gameState.HEAD_POSITIONS?.white) {
+                  if (!gameState.headMovesMade) {
+                    gameState.headMovesMade = 0;
+                  }
+                  gameState.headMovesMade++;
+                  console.log(`Made head move #${gameState.headMovesMade}`);
+                  
+                  // After making a head move, immediately remove head position from all valid moves
+                  // unless it's special doubles and we've made only one head move
+                  const isFirstTurnSpecialDoubles = 
+                    gameState.isFirstTurn && 
+                    gameState.dice && 
+                    gameState.dice.length >= 2 && 
+                    gameState.dice[0] === gameState.dice[1] && 
+                    [3, 4, 6].includes(gameState.dice[0]);
+                  
+                  if (gameState.headMovesMade >= (isFirstTurnSpecialDoubles ? 2 : 1)) {
+                    // Remove head position from valid moves for all stored valid moves
+                    if (gameState.validMovesByPiece && gameState.validMovesByPiece[gameState.HEAD_POSITIONS.white]) {
+                      console.log('Removing head position from valid moves after making a head move');
+                      delete gameState.validMovesByPiece[gameState.HEAD_POSITIONS.white];
+                    }
+                    
+                    // Also clear the validDestinations if they're from the head position
+                    if (gameState.validDestinations && gameState.validDestinations.length > 0 && 
+                        fromPos === gameState.HEAD_POSITIONS.white) {
+                      console.log('Clearing valid destinations from head position');
+                      gameState.validDestinations = [];
+                    }
+                  }
+                }
+                
+                // Update game state if board is provided
+                if (data.board) {
+                  gameState.board = data.board;
+                  updateBoardDisplay(data.board);
+                }
+                
+                // Update borne off counts if provided
+                if (data.borne_off) {
+                  console.log('Borne off pieces updated:', data.borne_off);
+                }
+                
+                // Check if we have more moves for doubles
+                if (data.move_number && data.total_moves) {
+                  console.log(`Move ${data.move_number}/${data.total_moves} completed, more moves available`);
+                  
+                  // Show message about additional moves
+                  const gameMessage = document.getElementById('game-message');
+                  gameMessage.textContent = `Make move ${data.move_number}/${data.total_moves}`;
+                  gameMessage.style.display = 'block';
+                  
+                  // Process valid moves for next step
+                  if (data.valid_moves_by_piece) {
+                    console.log('Valid moves for next step in doubles:', data.valid_moves_by_piece);
+                    
+                    // Apply head rule before processing valid moves
+                    if (gameState.headMovesMade > 0) {
+                      // If we've already made a head move, remove the head position
+                      // from the valid moves unless this is special doubles
+                      const isFirstTurnSpecialDoubles = 
+                        gameState.isFirstTurn && 
+                        gameState.dice && 
+                        gameState.dice.length >= 2 && 
+                        gameState.dice[0] === gameState.dice[1] && 
+                        [3, 4, 6].includes(gameState.dice[0]);
+                      
+                      if (gameState.headMovesMade >= (isFirstTurnSpecialDoubles ? 2 : 1) && 
+                          data.valid_moves_by_piece && 
+                          data.valid_moves_by_piece[gameState.HEAD_POSITIONS.white]) {
+                        console.log('Removing head position from valid moves for second move (head rule)');
+                        delete data.valid_moves_by_piece[gameState.HEAD_POSITIONS.white];
+                      }
+                    }
+                    
+                    // Clear previous selections
+                    document.querySelectorAll('.point').forEach(p => 
+                      p.classList.remove('selected', 'valid-destination', 'has-valid-moves', 'ai-move-source', 'ai-move-destination')
+                    );
+                    gameState.selectedPosition = null;
+                    gameState.validDestinations = [];
+                    
+                    // Make sure to update dice in game state
+                    if (data.dice) {
+                      gameState.dice = data.dice;
+                      console.log('Updated dice for doubles move:', gameState.dice);
+                    }
+                    
+                    // Clear any previous validMovesByPiece data when starting new moves
+                    // This prevents issues with stale move data
+                    if (data.move_number === 1) {
+                      gameState.validMovesByPiece = {};
+                    }
+                    
+                    // Store valid moves data
+                    gameState.validMovesByPiece = {};
+                    Object.keys(data.valid_moves_by_piece).forEach(posStr => {
+                      const pos = parseInt(posStr);
+                      gameState.validMovesByPiece[pos] = [];
+                      
+                      // Handle different formats of valid moves
+                      const moves = data.valid_moves_by_piece[posStr];
+                      if (Array.isArray(moves)) {
+                        moves.forEach(move => {
+                          if (Array.isArray(move) && move.length >= 2) {
+                            let destPos = move[1];
+                            if (destPos === 'off') destPos = -1;
+                            
+                            // Only add moves that don't use an already used die
+                            const dieValue = pos - (destPos === -1 ? 0 : destPos);
+                            
+                            // Check die usage
+                            const dieIsAvailable = (!gameState.usedDice || !gameState.usedDice.includes(dieValue));
+                            
+                            // Check head rule - only allow one move from head position 
+                            // except for special doubles on first turn
+                            let headRuleAllows = true;
+                            if (pos === gameState.HEAD_POSITIONS?.white) {
+                              const headMovesMade = gameState.headMovesMade || 0;
+                              const isFirstTurnSpecialDoubles = 
+                                gameState.isFirstTurn && 
+                                gameState.dice && 
+                                gameState.dice.length >= 2 && 
+                                gameState.dice[0] === gameState.dice[1] && 
+                                [3, 4, 6].includes(gameState.dice[0]);
+                                
+                              // Allow up to 2 head moves only for first turn special doubles
+                              if (headMovesMade >= 1 && !isFirstTurnSpecialDoubles) {
+                                headRuleAllows = false;
+                                console.log(`Filtering out move ${pos} -> ${destPos} because of head rule (already made ${headMovesMade} head moves)`);
+                              } else if (headMovesMade >= 2) {
+                                // Even with special doubles, max is 2 head moves
+                                headRuleAllows = false;
+                                console.log(`Filtering out move ${pos} -> ${destPos} because already made maximum 2 head moves`);
+                              }
+                            }
+                            
+                            if (dieIsAvailable && headRuleAllows) {
+                              gameState.validMovesByPiece[pos].push(destPos);
+                            } else if (!dieIsAvailable) {
+                              console.log(`Filtering out move ${pos} -> ${destPos} because die ${dieValue} was already used`);
+                            }
+                          }
+                        });
+                      }
+                      
+                      console.log(`Stored valid destinations for position ${pos}:`, gameState.validMovesByPiece[pos]);
+                    });
+                    
+                    // For doubles, we need to calculate additional valid moves
+                    // For third and fourth moves, we might not get all valid moves
+                    if (data.move_number >= 3 && data.dice && data.dice.length > 0) {
+                      const dieValue = data.dice[0]; // Use the die value for doubles
+                      console.log(`Calculating additional valid moves for die value ${dieValue}`);
+                      
+                      // For each white piece on the board, calculate possible destinations
+                      let foundAnyValidMoves = false;
+                      for (let pos = 0; pos < gameState.board.length; pos++) {
+                        if (gameState.board[pos] > 0) { // If there's a white piece here
+                          // Calculate destination by subtracting die value
+                          const destination = pos - dieValue;
+                          
+                          // If destination is valid (on board and not occupied by black)
+                          if (destination >= 0 && gameState.board[destination] >= 0) {
+                            // Check if this die value has already been used
+                            if (!gameState.usedDice || !gameState.usedDice.includes(dieValue)) {
+                              // Add to valid moves
+                              if (!gameState.validMovesByPiece[pos]) {
+                                gameState.validMovesByPiece[pos] = [];
+                              }
+                              
+                              // Add only if not already in the list
+                              if (!gameState.validMovesByPiece[pos].includes(destination)) {
+                                gameState.validMovesByPiece[pos].push(destination);
+                                console.log(`Added calculated valid move: ${pos} -> ${destination} (die: ${dieValue})`);
+                                foundAnyValidMoves = true;
+                              }
+                            } else {
+                              console.log(`Skipping move ${pos} -> ${destination} because die ${dieValue} was already used`);
+                            }
+                          }
+                        }
+                      }
+                      
+                      // If no valid moves were found, we should move to AI's turn
+                      if (!foundAnyValidMoves) {
+                        console.log("No valid moves found for remaining dice. Moving to AI's turn.");
+                        
+                        // Make an API call to get AI's move
+                        fetch('/api/confirm_moves', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({})
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                          console.log("AI's turn starting:", data);
+                          
+                          // Make sure we update our game state
+                          if (data.board) {
+                            gameState.board = data.board;
+                            updateBoardDisplay(data.board);
+                          }
+                          gameState.currentPlayer = data.current_player || 'black';
+                          
+                          // Update message
+                          const gameMessage = document.getElementById('game-message');
+                          gameMessage.textContent = "AI's turn...";
+                          gameMessage.style.display = 'block';
+                          
+                          // Process AI move response (same as regular AI move)
+                          if (data.ai_moves && data.ai_moves.length > 0) {
+                            console.log("AI made moves:", data.ai_moves);
+                            
+                            // Show AI dice values if provided
+                            if (data.ai_dice && data.ai_dice.length === 2) {
+                              console.log('AI dice:', data.ai_dice);
+                              const diceContainer = document.getElementById('dice-container');
+                              diceContainer.style.display = 'flex';
+                              renderDice(data.ai_dice[0], data.ai_dice[1]);
+                            }
+                            
+                            // Visualize AI moves with animation
+                            visualizeAIMoves(data.ai_moves);
+                            
+                            // After animation completes, update to player's turn
+                            const lastMoveIndex = data.ai_moves.length - 1;
+                            setTimeout(() => {
+                              if (data.current_player === 'white') {
+                                // Update game message for player's turn
+                                const gameMessage = document.getElementById('game-message');
+                                gameMessage.textContent = 'Your turn - roll dice';
+                                gameMessage.style.display = 'block';
+                                
+                                // Show roll button for player's next turn
+                                const rollButton = document.getElementById('simple-roll-button');
+                                if (rollButton) {
+                                  rollButton.style.display = 'block';
+                                }
+                              }
+                            }, (lastMoveIndex + 1) * 1000 + 500); // Wait for animations
+                          } else {
+                            // If AI moves not provided, still update UI for player's turn
+                            setTimeout(() => {
+                              const gameMessage = document.getElementById('game-message');
+                              gameMessage.textContent = 'Your turn - roll dice';
+                              gameMessage.style.display = 'block';
+                              
+                              // Show roll button for player's next turn
+                              const rollButton = document.getElementById('simple-roll-button');
+                              if (rollButton) {
+                                rollButton.style.display = 'block';
+                              }
+                            }, 1000); // Short delay
+                          }
+                        })
+                        .catch(error => console.error('Error starting AI turn:', error));
+                        
+                        return; // Don't continue processing
+                      }
+                    }
+                    
+                    // Highlight positions with valid moves
+                    Object.keys(gameState.validMovesByPiece).forEach(fromPos => {
+                      const pointElement = document.getElementById('simple-point-' + fromPos);
+                      if (pointElement) {
+                        pointElement.classList.add('has-valid-moves');
+                      }
+                    });
+                    
+                    // Add debug output of all pieces after third move
+                    const whitePieces = [];
+                    for (let i = 0; i < gameState.board.length; i++) {
+                      if (gameState.board[i] > 0) {
+                        whitePieces.push(i);
+                      }
+                    }
+                    console.log("White pieces after move:", whitePieces);
+                  }
+                  
+                  return; // Don't go to AI's turn yet since we have more moves
+                }
+                
+                // If AI has moved, visualize those moves
+                if (data.ai_moves && data.ai_moves.length > 0) {
+                  console.log('AI moves included in response:', data.ai_moves);
+                  
+                  // Small delay before showing AI moves
+                  setTimeout(() => {
+                    // Show AI dice if provided
+                    if (data.ai_dice && data.ai_dice.length === 2) {
+                      console.log('AI dice:', data.ai_dice);
+                      const diceContainer = document.getElementById('dice-container');
+                      diceContainer.style.display = 'flex';
+                      renderDice(data.ai_dice[0], data.ai_dice[1]);
+                    }
+                    
+                    // Visualize AI moves
+                    visualizeAIMoves(data.ai_moves);
+                    
+                    // After AI move animation completes, update to player's turn
+                    const lastMoveIndex = data.ai_moves.length - 1;
+                    setTimeout(() => {
+                      if (data.current_player === 'white') {
+                        // Update game message for player's turn
+                        const gameMessage = document.getElementById('game-message');
+                        gameMessage.textContent = 'Your turn - roll dice';
+                        gameMessage.style.display = 'block';
+                        
+                        // Show roll button for player's next turn
+                        const rollButton = document.getElementById('simple-roll-button');
+                        if (rollButton) {
+                          rollButton.style.display = 'block';
+                        }
+                      }
+                    }, (lastMoveIndex + 1) * 1000 + 500); // Wait for all animations + extra time
+                  }, 1000);
+                }
+                // Handle second move if needed
+                else if (data.first_move_complete && data.needs_second_move) {
+                  console.log('Need second move. Valid moves:', data.valid_moves_by_piece);
+                  
+                  // Clear highlights
+                  document.querySelectorAll('.point').forEach(p => p.classList.remove('selected', 'valid-destination'));
+                  
+                  // Find positions with valid moves for second move
+                  let piecesWithValidMoves = Object.keys(data.valid_moves_by_piece).filter(pos => 
+                    data.valid_moves_by_piece[pos] && data.valid_moves_by_piece[pos].length > 0
+                  );
+                  
+                  console.log('Pieces with valid moves for second move:', piecesWithValidMoves);
+                  
+                  // Highlight all positions with valid moves
+                  piecesWithValidMoves.forEach(position => {
+                    const pointElement = document.getElementById('simple-point-' + position);
+                    if (pointElement) {
+                      pointElement.classList.add('has-valid-moves');
+                    }
+                  });
+                  
+                  // Show message for second move
+                  const gameMessage = document.getElementById('game-message');
+                  gameMessage.textContent = 'Make your second move';
+                  gameMessage.style.display = 'block';
+                  
+                  // Clear valid destinations but keep game in progress
+                  gameState.selectedPosition = null;
+                  gameState.validDestinations = [];
+                  
+                  // Store valid moves for second turn
+                  // Process the valid moves by piece
+                  if (data.valid_moves_by_piece) {
+                    console.log('Valid moves by piece for second move:', data.valid_moves_by_piece);
+                    
+                    // Initialize the stored valid moves object
+                    gameState.validMovesByPiece = {};
+                    
+                    // For each position with pieces
+                    Object.keys(data.valid_moves_by_piece).forEach(fromPos => {
+                      const posNum = parseInt(fromPos);
+                      const moves = data.valid_moves_by_piece[fromPos];
+                      
+                      // Check if moves exists and is an array
+                      if (Array.isArray(moves) && moves.length > 0) {
+                        // Get all destination positions for this piece
+                        gameState.validMovesByPiece[posNum] = [];
+                        
+                        moves.forEach(move => {
+                          // Make sure the move is properly structured
+                          if (Array.isArray(move) && move.length >= 2) {
+                            let destPos = move[1]; // Second element is destination
+                            if (destPos === 'off') destPos = -1; // Convert 'off' to -1
+                            
+                            // Only add moves that don't use an already used die
+                            const dieValue = posNum - (destPos === -1 ? 0 : destPos);
+                            
+                            // Check die usage
+                            const dieIsAvailable = (!gameState.usedDice || !gameState.usedDice.includes(dieValue));
+                            
+                            // Check head rule - only allow one move from head position 
+                            // except for special doubles on first turn
+                            let headRuleAllows = true;
+                            if (posNum === gameState.HEAD_POSITIONS?.white) {
+                              const headMovesMade = gameState.headMovesMade || 0;
+                              const isFirstTurnSpecialDoubles = 
+                                gameState.isFirstTurn && 
+                                gameState.dice && 
+                                gameState.dice.length >= 2 && 
+                                gameState.dice[0] === gameState.dice[1] && 
+                                [3, 4, 6].includes(gameState.dice[0]);
+                                
+                              // Allow up to 2 head moves only for first turn special doubles
+                              if (headMovesMade >= 1 && !isFirstTurnSpecialDoubles) {
+                                headRuleAllows = false;
+                                console.log(`Filtering out move ${posNum} -> ${destPos} because of head rule (already made ${headMovesMade} head moves)`);
+                              } else if (headMovesMade >= 2) {
+                                // Even with special doubles, max is 2 head moves
+                                headRuleAllows = false;
+                                console.log(`Filtering out move ${posNum} -> ${destPos} because already made maximum 2 head moves`);
+                              }
+                            }
+                            
+                            if (dieIsAvailable && headRuleAllows) {
+                              gameState.validMovesByPiece[posNum].push(destPos);
+                              console.log(`Added valid move ${posNum} -> ${destPos} with die ${dieValue}`);
+                            } else if (!dieIsAvailable) {
+                              console.log(`Filtering out move ${posNum} -> ${destPos} because die ${dieValue} was already used`);
+                            }
+                          }
+                        });
+                      }
+                    });
+                    
+                    console.log('Processed valid moves for second move:', gameState.validMovesByPiece);
+                    
+                    // Show message about needing a second move
+                    const gameMessage = document.getElementById('game-message');
+                    gameMessage.textContent = 'Make your second move';
+                    gameMessage.style.display = 'block';
+                    
+                    // Clear valid destinations but keep game in progress
+                    gameState.selectedPosition = null;
+                    gameState.validDestinations = [];
+                    
+                    // Add click highlight to positions with valid moves
+                    Object.keys(gameState.validMovesByPiece).forEach(fromPos => {
+                      const pointElement = document.getElementById('simple-point-' + fromPos);
+                      if (pointElement) {
+                        pointElement.classList.add('has-valid-moves');
+                      }
+                    });
+                  }
+                } else {
+                  // Move is complete, reset selections
+                  gameState.selectedPosition = null;
+                  gameState.validDestinations = [];
+                  
+                  // Clear highlights
+                  document.querySelectorAll('.point').forEach(p => p.classList.remove('selected', 'valid-destination', 'has-valid-moves'));
+                  
+                  // Show waiting for AI message
+                  const gameMessage = document.getElementById('game-message');
+                  gameMessage.textContent = "AI's turn...";
+                  gameMessage.style.display = 'block';
+                }
+              })
+              .catch(error => console.error('Error making move:', error));
+              
+              // Clear highlights immediately for better UX
+              document.querySelectorAll('.point').forEach(p => p.classList.remove('selected', 'valid-destination'));
+            } 
+            // Otherwise, if this position has our pieces, select it
+            else if (gameState.board[position] > 0) {
+              console.log(`Selecting position ${position} which has our pieces`);
+              
+              // Clear previous selection
+              document.querySelectorAll('.point').forEach(p => p.classList.remove('selected', 'valid-destination', 'has-valid-moves'));
+              
+              // Select this position
+              gameState.selectedPosition = position;
+              this.classList.add('selected');
+              
+              // Try getting valid moves from available sources
+              let foundValidMoves = false;
+              
+              // Check if this is a head position and if we can move from it
+              if (position === gameState.HEAD_POSITIONS?.white) {
+                const headMovesMade = gameState.headMovesMade || 0;
+                const isFirstTurnSpecialDoubles = 
+                  gameState.isFirstTurn && 
+                  gameState.dice && 
+                  gameState.dice.length >= 2 && 
+                  gameState.dice[0] === gameState.dice[1] && 
+                  [3, 4, 6].includes(gameState.dice[0]);
+                
+                // Apply head rule
+                if (headMovesMade >= 1 && !isFirstTurnSpecialDoubles) {
+                  console.log(`Can't move from head position ${position} - already made ${headMovesMade} head moves and not special doubles`);
+                  return; // Exit early - no valid moves from head position
+                } else if (headMovesMade >= 2) {
+                  console.log(`Can't move from head position ${position} - already made maximum 2 head moves`);
+                  return; // Exit early - maximum head moves reached
+                }
+                
+                console.log(`Head position ${position} check passed: made ${headMovesMade} moves, special doubles: ${isFirstTurnSpecialDoubles}`);
+              }
+              
+              // Check for valid moves in our stored valid moves data
+              if (gameState.validMovesByPiece && 
+                  gameState.validMovesByPiece[position] &&
+                  Array.isArray(gameState.validMovesByPiece[position])) {
+                
+                const validDestinations = gameState.validMovesByPiece[position];
+                console.log(`Using stored valid moves for position ${position}:`, validDestinations);
+                
+                if (validDestinations.length > 0) {
+                  // Update game state
+                  gameState.validDestinations = validDestinations;
+                  
+                  // Highlight valid destinations
+                  validDestinations.forEach(destPos => {
+                    if (destPos >= 0) {
+                      const pointElement = document.getElementById('simple-point-' + destPos);
+                      if (pointElement) {
+                        pointElement.classList.add('valid-destination');
+                      }
+                    }
+                  });
+                  
+                  foundValidMoves = true;
+                  console.log(`Found ${validDestinations.length} valid destinations for position ${position}`);
+                }
+              }
+              
+              // For doubles on 3rd or 4th moves, try to calculate valid moves directly
+              if (!foundValidMoves && gameState.dice && gameState.dice.length > 0 && gameState.dice[0] === gameState.dice[1]) {
+                console.log('Trying to calculate valid moves for doubles');
+                // Calculate possible destination
+                const dieValue = gameState.dice[0];
+                
+                // Check if this die value has already been used too many times
+                const usedCount = gameState.usedDice ? 
+                  gameState.usedDice.filter(val => val === dieValue).length : 0;
+                
+                console.log(`Die value ${dieValue} has been used ${usedCount} times out of 4 possible times`);
+                
+                // For doubles, we have up to 4 of the same die value
+                if (usedCount < 4) {
+                  const destination = position - dieValue;
+                  
+                  // Check if destination is valid (on board and not occupied by black)
+                  if (destination >= 0 && gameState.board[destination] >= 0) {
+                    console.log(`Calculated valid move for doubles: ${position} -> ${destination} (die: ${dieValue})`);
+                    
+                    // Update game state
+                    gameState.validDestinations = [destination];
+                    
+                    // Highlight valid destination
+                    const pointElement = document.getElementById('simple-point-' + destination);
+                    if (pointElement) {
+                      pointElement.classList.add('valid-destination');
+                    }
+                    
+                    foundValidMoves = true;
+                  }
+                } else {
+                  console.log(`Skipping calculation for doubles with die ${dieValue} because it has been used ${usedCount} times already`);
+                }
+              }
+              
+              // If no cached moves, get them from the server
+              if (!foundValidMoves) {
+                console.log(`Requesting valid moves for position ${position} from server`);
+                
+                // First check if this is position 17 with 2+ pieces (doubled up position)
+                // This is a special case since the server doesn't properly handle it
+                const dieValue = gameState.dice && gameState.dice.length > 0 ? gameState.dice[0] : null;
+                if (position === 17 && gameState.board[position] >= 2 && dieValue) {
+                  // Calculate the destination
+                  const destination = position - dieValue;
+                  
+                  // Check if valid (on board and not occupied by black)
+                  if (destination >= 0 && gameState.board[destination] >= 0) {
+                    console.log(`Special case: doubled position ${position} with die ${dieValue} -> ${destination}`);
+                    
+                    // Add to valid destinations
+                    gameState.validDestinations = [destination];
+                    
+                    // Highlight valid destination
+                    const pointElement = document.getElementById('simple-point-' + destination);
+                    if (pointElement) {
+                      pointElement.classList.add('valid-destination');
+                    }
+                    
+                    // Mark as found to avoid server request
+                    foundValidMoves = true;
+                  }
+                }
+                
+                // If still no valid moves, query server
+                if (!foundValidMoves) {
+                  // Make direct API call
+                  fetch('/api/get_valid_moves', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ position: position })
+                  })
+                  .then(response => response.json())
+                  .then(data => {
+                    console.log('Raw API response for valid moves:', data);
+                    
+                    if (data.valid_to_positions && data.valid_to_positions.length > 0) {
+                      // Store valid destinations in game state
+                      gameState.validDestinations = data.valid_to_positions;
+                      
+                      // Highlight valid destinations
+                      data.valid_to_positions.forEach(destPos => {
+                        if (destPos >= 0) {
+                          const pointElement = document.getElementById('simple-point-' + destPos);
+                          if (pointElement) {
+                            pointElement.classList.add('valid-destination');
+                          }
+                        }
+                      });
+                    } else if (data.error) {
+                      console.error('Error getting valid moves:', data.error);
+                      // Clear selection if there was an error
+                      gameState.selectedPosition = null;
+                      document.querySelectorAll('.point').forEach(p => p.classList.remove('selected'));
+                    }
+                  })
+                  .catch(error => console.error('Error getting valid moves:', error));
+                }
+              }
+            } else {
+              console.log(`Position ${position} doesn't have our pieces or isn't a valid destination`);
+            }
+          });
+        });
+      });
+      
+      // Subscribe to validMovesReceived event
+      comm.subscribe('validMovesReceived', function(data) {
+        console.log('Valid moves received:', data);
+        
+        // Extract valid destinations from the data
+        const position = data.position;
+        const validDestinations = data.validDestinations || [];
+        
+        console.log(`Valid moves for position ${position}:`, validDestinations);
+        
+        // Store valid destinations in game state
+        gameState.validDestinations = validDestinations;
+        
+        // Highlight valid destinations
+        validDestinations.forEach(destPos => {
+          // Skip "off" position (bearing off) for simplicity
+          if (destPos >= 0) {
+            const pointElement = document.getElementById('simple-point-' + destPos);
+            if (pointElement) {
+              pointElement.classList.add('valid-destination');
+            }
+          }
+        });
+      });
+      
+      // Function to visualize AI moves
+      function visualizeAIMoves(moves) {
+        if (!moves || moves.length === 0) return;
+        
+        console.log('Visualizing AI moves:', moves);
+        
+        // Create visual indicator for AI moves
+        moves.forEach((move, index) => {
+          // Extract from and to positions from the AI move data
+          // The move format could be [from, to] array or {from, to} object
+          let fromPos, toPos;
+          
+          if (Array.isArray(move)) {
+            fromPos = move[0];
+            toPos = move[1];
+          } else if (typeof move === 'object') {
+            fromPos = move.from;
+            toPos = move.to;
+          }
+          
+          console.log(`AI move ${index}: from ${fromPos} to ${toPos}`);
+          
+          if (fromPos !== undefined && toPos !== undefined && fromPos >= 0 && toPos >= 0) {
+            setTimeout(() => {
+              // Highlight source
+              const sourcePoint = document.getElementById('simple-point-' + fromPos);
+              if (sourcePoint) {
+                sourcePoint.classList.add('ai-move-source');
+                setTimeout(() => sourcePoint.classList.remove('ai-move-source'), 1000);
+              }
+              
+              // Highlight destination
+              const destPoint = document.getElementById('simple-point-' + toPos);
+              if (destPoint) {
+                destPoint.classList.add('ai-move-destination');
+                setTimeout(() => destPoint.classList.remove('ai-move-destination'), 1000);
+              }
+            }, index * 1000); // Stagger the highlighting
+          }
+        });
+      }
+      
+      // Subscribe to boardUpdated event
+      comm.subscribe('boardUpdated', function(data) {
+        console.log('Board updated:', data);
+        
+        // Update game state
+        gameState.board = data.board;
+        gameState.currentPlayer = data.currentPlayer || gameState.currentPlayer;
+        
+        // Update the board display
+        updateBoardDisplay(data.board);
+        
+        // Show dice for AI's turn if provided
+        if (data.ai_dice && data.ai_dice.length === 2) {
+          console.log('Showing AI dice:', data.ai_dice);
+          const diceContainer = document.getElementById('dice-container');
+          diceContainer.style.display = 'flex';
+          renderDice(data.ai_dice[0], data.ai_dice[1]);
+        }
+        
+        // Handle AI moves visualization
+        if (data.ai_moves && data.ai_moves.length > 0) {
+          console.log('AI made moves:', data.ai_moves);
+          visualizeAIMoves(data.ai_moves);
+          
+          // Show a temporary message about AI's move
+          const gameMessage = document.getElementById('game-message');
+          gameMessage.textContent = "AI is moving...";
+          gameMessage.style.display = 'block';
+          
+          // After AI move animation completes, update to player's turn
+          const lastMoveIndex = data.ai_moves.length - 1;
+          setTimeout(() => {
+            if (data.currentPlayer === 'white') {
+              // Update game message for player's turn
+              gameMessage.textContent = 'Your turn - roll dice';
+              
+              // Show roll button for player's next turn
+              const rollButton = document.getElementById('simple-roll-button');
+              if (rollButton) {
+                rollButton.style.display = 'block';
+              }
+            }
+          }, (lastMoveIndex + 1) * 1000 + 500); // Wait for all animations + extra time
+        } else {
+          // Standard turn messages (if not showing AI move animation)
+          const gameMessage = document.getElementById('game-message');
+          if (data.currentPlayer === 'white') {
+            gameMessage.textContent = 'Your turn - make a move';
+            
+            // Show roll button if dice aren't already rolled
+            if (!data.dice || data.dice.length === 0) {
+              const rollButton = document.getElementById('simple-roll-button');
+              if (rollButton) {
+                rollButton.style.display = 'block';
+              }
+            }
+          } else {
+            gameMessage.textContent = "AI's turn...";
+          }
+          gameMessage.style.display = 'block';
+          
+          // Update player dice display if provided
+          if (data.dice && data.dice.length === 2) {
+            const diceContainer = document.getElementById('dice-container');
+            diceContainer.style.display = 'flex';
+            renderDice(data.dice[0], data.dice[1]);
+          }
+        }
+        
+        // Handle game over state
+        if (data.game_over) {
+          const winner = data.winner;
+          const message = winner === 'white' ? 'You win!' : 'AI wins!';
+          
+          // Create game over overlay
+          const overlay = document.createElement('div');
+          overlay.className = 'game-over-overlay';
+          overlay.style.position = 'fixed';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.width = '100%';
+          overlay.style.height = '100%';
+          overlay.style.backgroundColor = 'rgba(0,0,0,0.8)';
+          overlay.style.display = 'flex';
+          overlay.style.justifyContent = 'center';
+          overlay.style.alignItems = 'center';
+          overlay.style.zIndex = '1000';
+          
+          // Create message box
+          const messageBox = document.createElement('div');
+          messageBox.className = 'game-over-message';
+          messageBox.style.backgroundColor = '#fff';
+          messageBox.style.padding = '30px';
+          messageBox.style.borderRadius = '10px';
+          messageBox.style.textAlign = 'center';
+          messageBox.style.maxWidth = '80%';
+          
+          // Add game over message
+          const heading = document.createElement('h2');
+          heading.textContent = message;
+          heading.style.color = winner === 'white' ? '#4CAF50' : '#F44336';
+          heading.style.fontSize = '32px';
+          heading.style.marginBottom = '20px';
+          
+          // Add borne off counts
+          const stats = document.createElement('p');
+          stats.style.fontSize = '18px';
+          stats.style.marginBottom = '30px';
+          
+          if (data.borne_off) {
+            stats.innerHTML = `Your pieces borne off: <strong>${data.borne_off.white}</strong><br>
+                              AI pieces borne off: <strong>${data.borne_off.black}</strong>`;
+          }
+          
+          // Add play again button
+          const playAgainBtn = document.createElement('button');
+          playAgainBtn.textContent = 'Play Again';
+          playAgainBtn.style.backgroundColor = '#4CAF50';
+          playAgainBtn.style.color = 'white';
+          playAgainBtn.style.padding = '10px 20px';
+          playAgainBtn.style.border = 'none';
+          playAgainBtn.style.borderRadius = '5px';
+          playAgainBtn.style.fontSize = '18px';
+          playAgainBtn.style.cursor = 'pointer';
+          
+          playAgainBtn.addEventListener('click', () => {
+            location.reload(); // Reload page to start fresh
+          });
+          
+          // Assemble the message box
+          messageBox.appendChild(heading);
+          messageBox.appendChild(stats);
+          messageBox.appendChild(playAgainBtn);
+          overlay.appendChild(messageBox);
+          
+          // Add to document
+          document.body.appendChild(overlay);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
