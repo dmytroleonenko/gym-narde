@@ -1756,6 +1756,10 @@
             }
           } else {
             gameMessage.textContent = "AI's turn...";
+            setTimeout(() => {
+              console.log("Automatically confirming AI moves...");
+              comm.send('confirmMove');
+            }, 1000);
           }
           gameMessage.style.display = 'block';
           
