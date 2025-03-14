@@ -1307,12 +1307,12 @@
                     // After AI move animation completes, update to player's turn
                     const lastMoveIndex = data.ai_moves.length - 1;
                     setTimeout(() => {
-                      if (data.current_player === 'white') {
+                      if (data.currentPlayer === 'white') {
                         // Update game message for player's turn
                         const gameMessage = document.getElementById('game-message');
                         gameMessage.textContent = 'Your turn - roll dice';
                         gameMessage.style.display = 'block';
-                        
+              
                         // Show roll button for player's next turn
                         const rollButton = document.getElementById('simple-roll-button');
                         if (rollButton) {
