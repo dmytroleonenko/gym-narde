@@ -6,6 +6,13 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Initializing Long Nardy application');
   
+  // Ensure container element with id "backgammon" exists
+  if (!document.getElementById('backgammon')) {
+    const container = document.createElement('div');
+    container.id = 'backgammon';
+    document.body.appendChild(container);
+  }
+  
   // Create and initialize app with container ID
   const app = new App('backgammon');
   // Make sure the Comm module can find the API wrapper
