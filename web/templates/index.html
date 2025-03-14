@@ -1741,6 +1741,10 @@
               }
             }
           }, (lastMoveIndex + 1) * 1000 + 500); // Wait for all animations + extra time
+          setTimeout(() => {
+            console.log("Automatically confirming AI moves...");
+            comm.send('confirmMove');
+          }, (lastMoveIndex + 1) * 1000 + 1500);
         } else {
           // Standard turn messages (if not showing AI move animation)
           const gameMessage = document.getElementById('game-message');
