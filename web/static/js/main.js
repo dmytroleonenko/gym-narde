@@ -11,8 +11,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // Make sure the Comm module can find the API wrapper
   window.api = app.api;
   
-  // Start a new game automatically after App is fully initialized
-  setTimeout(() => { comm.send('newGame'); }, 500);
+  // Start a new game automatically after App is fully initialized, ensuring window.api is available
+  function trySendNewGame() {
+    if (window.api && window.api.reqNewGame) {
+      comm.send('newGame');
+    } else {
+      console.log('Waiting for API to be available...');
+      setTimeout(trySendNewGame, 500);
+    }
+  }
+  trySendNewGame();
   
   // Store app in global scope for debugging
   window.app = app;
