@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const app = new App('backgammon');
   
   // Start a new game automatically after App is fully initialized
-  setTimeout(() => { comm.send('newGame'); }, 0);
+  setTimeout(() => { comm.send('newGame'); }, 100);
   
   // Store app in global scope for debugging
   window.app = app;
