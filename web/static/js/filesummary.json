@@ -25,7 +25,7 @@
   },
   "game.js": {
     "functions": ["startNewGame", "renderDice", "renderBoard", "renderBorneOff", "getValidMoves", "makeMove", "..."],
-    "summary": "Initializes game state, sets up DOM event listeners (drag/drop, button clicks, modal handling), and synchronizes moves with the server."
+    "summary": "Initializes game state, sets up DOM event listeners (drag/drop, button clicks, modal handling), synchronizes moves with the server, and now enforces a head move rule that prevents generating valid moves from the head after the first move (unless in special doubles cases)."
   },
   "BoardContainer.js": {
     "classes": ["BoardContainer"],
