@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Create and initialize app with container ID
   const app = new App('backgammon');
   
-  // Start a new game automatically
-  comm.send('newGame');
+  // Start a new game automatically after App is fully initialized
+  setTimeout(() => { comm.send('newGame'); }, 0);
   
   // Store app in global scope for debugging
   window.app = app;
