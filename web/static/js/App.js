@@ -171,6 +171,11 @@ class App {
     // Game state events
     comm.subscribe('gameStateChanged', (data) => {
       console.log('App handling gameStateChanged:', data);
+      // If the server sends info about the last move, and it came from head (23),
+      // mark headMoveUsed so the second head move is blocked.
+      if (data.last_move && data.last_move.from_position === 23 && !this.isSpecialDoublesCase()) {
+        this.headMoveUsed = true;
+      }
       this.gameState = {
         ...data,
         headMoveMade: (data.headMoveMade !== undefined ? data.headMoveMade : this.gameState.headMoveMade),
