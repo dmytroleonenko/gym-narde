@@ -15,13 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Create and initialize app with container ID
   const app = new App('backgammon');
-  // After a short delay, assign window.api and start a new game.
-  setTimeout(() => {
-    window.api = app.api;
-    console.log("window.api has been set:", window.api);
-    comm.send('newGame');
-  }, 600);
-  
+  window.api = app.api;
+  console.log("window.api has been set:", window.api);
+  comm.send('newGame');
   // Store app in global scope for debugging
   window.app = app;
   
