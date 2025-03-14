@@ -43,6 +43,8 @@ class App {
     
     // Pieces will be created dynamically based on board state
     this.pieces = [];
+    this.api = new ApiWrapper(comm);
+    window.api = this.api;
     
     // Listen for special doubles event
     window.addEventListener('specialDoublesDetected', this.handleSpecialDoublesDetected.bind(this));

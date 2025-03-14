@@ -79,7 +79,26 @@ Comm.prototype = {
    */
   send: function(msg, payload, callback) {
     console.log('Sending message:', msg, payload);
-    // For implementation with the API Wrapper
+    switch (msg) {
+      case 'getValidMoves':
+        return window.api.reqGetValidMoves(payload.position);
+      case 'makeMove':
+        return window.api.reqMove(null, payload.fromPosition, payload.toPosition);
+      case 'rollDice':
+      case 'roll':
+        return window.api.reqRollDice();
+      case 'confirmMove':
+      case 'confirm':
+        return window.api.reqConfirmMoves();
+      case 'undoMove':
+      case 'undo':
+        return window.api.reqUndoMoves();
+      case 'newGame':
+        return window.api.reqNewGame();
+      default:
+        console.error('Unknown message type in send:', msg);
+        return;
+    }
   }
 };
 
