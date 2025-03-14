@@ -170,7 +170,7 @@ class App {
       console.log('App handling gameStateChanged:', data);
       this.gameState = {
         ...data,
-        headMoveMade: false, // Reset head move tracking on new game state
+        headMoveMade: (data.headMoveMade !== undefined ? data.headMoveMade : this.gameState.headMoveMade),
         validDestinations: this.gameState.validDestinations // Preserve destinations
       };
       this.renderBoard();
@@ -186,11 +186,16 @@ class App {
       console.log('App handling validMovesReceived:', data);
       const { position, validDestinations } = data;
       
+      let filteredDestinations = validDestinations;
+      if (position === 23 && (this.headMoveUsed || this.gameState.headMoveMade) && !this.isSpecialDoublesCase()) {
+          filteredDestinations = [];
+      }
+      
       // Update valid destinations
-      this.gameState.validDestinations = validDestinations;
+      this.gameState.validDestinations = filteredDestinations;
       
       // Highlight valid destinations on board
-      this.highlightValidDestinations(validDestinations);
+      this.highlightValidDestinations(filteredDestinations);
     });
     
     comm.subscribe('boardUpdated', (data) => {
