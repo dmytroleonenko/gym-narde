@@ -81,6 +81,7 @@ class App {
         // If we already made a head move (tracked either locally or in game state) and this isn't a special case, show notification
         if ((this.headMoveUsed || this.gameState.headMoveMade) && !this.isSpecialDoublesCase()) {
           this.boardContainer.showHeadRuleNotification(true);
+          this.gameState.selectedPiece = null;
           return;
         }
       }
