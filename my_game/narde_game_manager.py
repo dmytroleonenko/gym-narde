@@ -558,6 +558,14 @@ class NardeGameManager:
         if self.is_doubles_roll and self.moves_count >= 1:
             valid_moves = self._add_special_case_moves(valid_moves, positions_with_pieces, player_color)
         
+        # For the current player, filter out any move whose from–square no longer holds a piece.
+        if player_color == 'black':
+            valid_moves = [move for move in valid_moves 
+                           if self.game.board[self._convert_black_from(move[0])] < 0]
+        else:
+            valid_moves = [move for move in valid_moves 
+                           if self.game.board[move[0]] > 0]
+        
         # Log the valid moves for debugging
         for move in valid_moves:
             logging.info(f"Valid move after calculation: {move[0]} -> {move[1]}")
@@ -596,6 +604,14 @@ class NardeGameManager:
             return [pos for pos in range(24) if self.game.board[pos] > 0]
         else:
             return [pos for pos in range(24) if self.game.board[pos] < 0]
+
+    def _convert_black_from(self, pos: int) -> int:
+        """
+        Given a black move’s from–position (which is in the rotated scheme),
+        convert it back to the white board coordinate.
+        (Our conversion in NardePatched.sets pos 23→11 for black.)
+        """
+        return 23 if pos == 11 else pos
     
     def _scan_board_for_valid_moves(self, valid_moves: List[Tuple[int, Union[int, str]]], 
                                      positions: List[int], 
