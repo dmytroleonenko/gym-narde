@@ -1528,6 +1528,12 @@
                 
                 console.log(`Die value ${dieValue} has been used ${usedCount} times out of 4 possible times`);
                 
+                // ***** FIX: Block doubles calculation from the head if a head move was already made *****
+                if (position === gameState.HEAD_POSITIONS?.white && gameState.headMovesMade > 0) {
+                  console.log("Skipping doubles calculation for head position because a head move has already been performed");
+                  return;
+                }
+                
                 // For doubles, we have up to 4 of the same die value
                 if (usedCount < 4) {
                   const destination = position - dieValue;
