@@ -7575,3 +7575,433 @@
 2025-03-14 15:50:16,188 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
 2025-03-14 15:50:17,002 - werkzeug - WARNING -  * Debugger is active!
 2025-03-14 15:50:17,009 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:22:57,627 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5858
+2025-03-14 16:22:57,627 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-03-14 16:22:57,632 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:22:58,448 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:22:58,457 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:23:08,062 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET / HTTP/1.1" 200 -
+2025-03-14 16:23:08,111 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 16:23:08,112 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 16:23:08,112 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 16:23:08,171 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,171 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,176 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,178 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,178 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,186 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 16:23:08,191 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:23:08] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,311 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET / HTTP/1.1" 200 -
+2025-03-14 16:31:15,353 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 16:31:15,366 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 16:31:15,368 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 16:31:15,425 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,425 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,428 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,429 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,436 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,436 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,438 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 16:31:15,681 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:15] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-03-14 16:31:19,964 - root - INFO - NardePatched.get_valid_moves: dice=[4, 2], current_player='white'
+2025-03-14 16:31:19,965 - root - INFO -   Added new valid moves by considering dice separately: [(23, 21)]
+2025-03-14 16:31:19,965 - root - INFO -   Valid moves from original: [(23, 19), (23, 21)]
+2025-03-14 16:31:19,965 - root - INFO - Found 2 valid moves from game engine for white
+2025-03-14 16:31:19,965 - root - INFO - After board scan: found 2 valid moves for white
+2025-03-14 16:31:19,965 - root - INFO - Position 23 has 2 valid moves: [(23, 19), (23, 21)]
+2025-03-14 16:31:19,966 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:19] "POST /api/new_game HTTP/1.1" 200 -
+2025-03-14 16:31:23,420 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:31:23,420 - root - INFO - From position: 23, To position: 21
+2025-03-14 16:31:23,420 - root - INFO - Attempting move for white: (23, 21)
+2025-03-14 16:31:23,420 - root - INFO - Head move made for white using die value 2
+2025-03-14 16:31:23,420 - root - INFO - NardePatched.execute_rotated_move: move=(23, 21), current_player='white'
+2025-03-14 16:31:23,420 - root - INFO -   Executing white move directly: (23, 21)
+2025-03-14 16:31:23,420 - root - INFO -   _execute_move: from_pos=23, to_pos=21, is_white=True
+2025-03-14 16:31:23,420 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]
+2025-03-14 16:31:23,420 - root - INFO -   White moving from 23 to 21
+2025-03-14 16:31:23,420 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 14]
+2025-03-14 16:31:23,420 - root - INFO - Used die value 2, remaining: [4]
+2025-03-14 16:31:23,420 - root - INFO - Calculating valid moves using dice: [4]
+2025-03-14 16:31:23,421 - root - INFO - NardePatched.get_valid_moves: dice=[4], current_player='white'
+2025-03-14 16:31:23,421 - root - INFO -   Valid moves from original: [(23, 19)]
+2025-03-14 16:31:23,421 - root - INFO - Adding valid move: 21 -> 17
+2025-03-14 16:31:23,421 - root - INFO - Valid move after calculation: 23 -> 19
+2025-03-14 16:31:23,421 - root - INFO - Valid move after calculation: 23 -> 21
+2025-03-14 16:31:23,421 - root - INFO - Valid move after calculation: 21 -> 17
+2025-03-14 16:31:23,421 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:23] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:31:34,940 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:31:34,940 - root - INFO - From position: 23, To position: 19
+2025-03-14 16:31:34,940 - root - INFO - Attempting move for white: (23, 19)
+2025-03-14 16:31:34,940 - root - ERROR - Invalid move (23, 19): Only one checker may leave the head position per turn
+2025-03-14 16:31:34,941 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:31:34] "[31m[1mPOST /api/make_move HTTP/1.1[0m" 400 -
+2025-03-14 16:32:19,223 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:32:19] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-03-14 16:32:26,894 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:32:26] "[31m[1mGET /api/make_move HTTP/1.1[0m" 405 -
+2025-03-14 16:40:49,836 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5858
+2025-03-14 16:40:49,836 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-03-14 16:40:49,841 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:40:50,694 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:40:50,702 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:40:54,905 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:54] "GET / HTTP/1.1" 200 -
+2025-03-14 16:40:54,973 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:54] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 16:40:54,973 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:54] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 16:40:54,974 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:54] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 16:40:55,020 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,023 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,025 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,032 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,032 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,032 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 16:40:55,033 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:55] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 16:40:56,721 - root - INFO - Player white rolled doubles: [4, 4]. Expanded: [4, 4, 4, 4]
+2025-03-14 16:40:56,721 - root - INFO - NardePatched.get_valid_moves: dice=[4, 4, 4, 4], current_player='white'
+2025-03-14 16:40:56,722 - root - INFO -   Valid moves from original: [(23, 19)]
+2025-03-14 16:40:56,722 - root - INFO - Found 1 valid moves from game engine for white
+2025-03-14 16:40:56,722 - root - INFO - After board scan: found 1 valid moves for white
+2025-03-14 16:40:56,722 - root - INFO - Position 23 has 1 valid moves: [(23, 19)]
+2025-03-14 16:40:56,722 - root - INFO - Special first turn doubles for white. Max head moves: 2
+2025-03-14 16:40:56,723 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:40:56] "POST /api/new_game HTTP/1.1" 200 -
+2025-03-14 16:41:01,738 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:01,738 - root - INFO - From position: 23, To position: 19
+2025-03-14 16:41:01,738 - root - INFO - Attempting move for white: (23, 19)
+2025-03-14 16:41:01,738 - root - INFO - Head move made for white using die value 4
+2025-03-14 16:41:01,738 - root - INFO - NardePatched.execute_rotated_move: move=(23, 19), current_player='white'
+2025-03-14 16:41:01,738 - root - INFO -   Executing white move directly: (23, 19)
+2025-03-14 16:41:01,739 - root - INFO -   _execute_move: from_pos=23, to_pos=19, is_white=True
+2025-03-14 16:41:01,739 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]
+2025-03-14 16:41:01,739 - root - INFO -   White moving from 23 to 19
+2025-03-14 16:41:01,739 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 14]
+2025-03-14 16:41:01,739 - root - INFO - Used die value 4, remaining: [4, 4, 4]
+2025-03-14 16:41:01,739 - root - INFO - Calculating valid moves using dice: [4, 4, 4]
+2025-03-14 16:41:01,739 - root - INFO - NardePatched.get_valid_moves: dice=[4, 4, 4], current_player='white'
+2025-03-14 16:41:01,739 - root - INFO -   Valid moves from original: [(23, 19)]
+2025-03-14 16:41:01,739 - root - INFO - Adding valid move: 19 -> 15
+2025-03-14 16:41:01,740 - root - INFO - Valid move after calculation: 23 -> 19
+2025-03-14 16:41:01,740 - root - INFO - Valid move after calculation: 19 -> 15
+2025-03-14 16:41:01,740 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:01] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:03,540 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:03,541 - root - INFO - From position: 19, To position: 15
+2025-03-14 16:41:03,541 - root - INFO - Attempting move for white: (19, 15)
+2025-03-14 16:41:03,541 - root - INFO - NardePatched.execute_rotated_move: move=(19, 15), current_player='white'
+2025-03-14 16:41:03,541 - root - INFO -   Executing white move directly: (19, 15)
+2025-03-14 16:41:03,541 - root - INFO -   _execute_move: from_pos=19, to_pos=15, is_white=True
+2025-03-14 16:41:03,541 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 14]
+2025-03-14 16:41:03,541 - root - INFO -   White moving from 19 to 15
+2025-03-14 16:41:03,541 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 14]
+2025-03-14 16:41:03,541 - root - INFO - Used die value 4, remaining: [4, 4]
+2025-03-14 16:41:03,541 - root - INFO - Calculating valid moves using dice: [4, 4]
+2025-03-14 16:41:03,542 - root - INFO - NardePatched.get_valid_moves: dice=[4, 4], current_player='white'
+2025-03-14 16:41:03,542 - root - INFO -   Valid moves from original: [(23, 19), (23, 19)]
+2025-03-14 16:41:03,542 - root - INFO - Valid move after calculation: 23 -> 19
+2025-03-14 16:41:03,542 - root - INFO - Valid move after calculation: 23 -> 19
+2025-03-14 16:41:03,542 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:03] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:07,789 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:07,789 - root - INFO - From position: 23, To position: 19
+2025-03-14 16:41:07,789 - root - INFO - Attempting move for white: (23, 19)
+2025-03-14 16:41:07,789 - root - INFO - Head move made for white using die value 4
+2025-03-14 16:41:07,789 - root - INFO - NardePatched.execute_rotated_move: move=(23, 19), current_player='white'
+2025-03-14 16:41:07,789 - root - INFO -   Executing white move directly: (23, 19)
+2025-03-14 16:41:07,789 - root - INFO -   _execute_move: from_pos=23, to_pos=19, is_white=True
+2025-03-14 16:41:07,789 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 14]
+2025-03-14 16:41:07,789 - root - INFO -   White moving from 23 to 19
+2025-03-14 16:41:07,789 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 13]
+2025-03-14 16:41:07,790 - root - INFO - Used die value 4, remaining: [4]
+2025-03-14 16:41:07,790 - root - INFO - Calculating valid moves using dice: [4]
+2025-03-14 16:41:07,790 - root - INFO - NardePatched.get_valid_moves: dice=[4], current_player='white'
+2025-03-14 16:41:07,790 - root - INFO -   Valid moves from original: [(23, 19)]
+2025-03-14 16:41:07,790 - root - INFO - Adding valid move: 19 -> 15
+2025-03-14 16:41:07,790 - root - INFO - Valid move after calculation: 23 -> 19
+2025-03-14 16:41:07,790 - root - INFO - Valid move after calculation: 19 -> 15
+2025-03-14 16:41:07,790 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:07] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:09,455 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:09,455 - root - INFO - From position: 19, To position: 15
+2025-03-14 16:41:09,455 - root - INFO - Attempting move for white: (19, 15)
+2025-03-14 16:41:09,455 - root - INFO - NardePatched.execute_rotated_move: move=(19, 15), current_player='white'
+2025-03-14 16:41:09,455 - root - INFO -   Executing white move directly: (19, 15)
+2025-03-14 16:41:09,455 - root - INFO -   _execute_move: from_pos=19, to_pos=15, is_white=True
+2025-03-14 16:41:09,455 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 13]
+2025-03-14 16:41:09,455 - root - INFO -   White moving from 19 to 15
+2025-03-14 16:41:09,455 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,456 - root - INFO - Used die value 4, remaining: []
+2025-03-14 16:41:09,456 - root - INFO - NardePatched.get_valid_moves: dice=[6, 2], current_player='black'
+2025-03-14 16:41:09,456 - root - INFO -   Added new valid moves by considering dice separately: [(23, 21)]
+2025-03-14 16:41:09,456 - root - INFO -   Valid moves from original: [(23, 17), (23, 21)]
+2025-03-14 16:41:09,456 - root - INFO -   Rotated moves for black: [(11, 5), (11, 9)]
+2025-03-14 16:41:09,456 - root - INFO - Found 2 valid moves from game engine for black
+2025-03-14 16:41:09,456 - root - INFO - After board scan: found 2 valid moves for black
+2025-03-14 16:41:09,456 - root - INFO - Position 11 has 2 valid moves: [(11, 5), (11, 9)]
+2025-03-14 16:41:09,456 - root - INFO - AI rolled: [6, 2]
+2025-03-14 16:41:09,456 - root - INFO - Calculating valid moves using dice: [6, 2]
+2025-03-14 16:41:09,456 - root - INFO - NardePatched.get_valid_moves: dice=[6, 2], current_player='black'
+2025-03-14 16:41:09,457 - root - INFO -   Added new valid moves by considering dice separately: [(23, 21)]
+2025-03-14 16:41:09,457 - root - INFO -   Valid moves from original: [(23, 17), (23, 21)]
+2025-03-14 16:41:09,457 - root - INFO -   Rotated moves for black: [(11, 5), (11, 9)]
+2025-03-14 16:41:09,457 - root - INFO - Valid move after calculation: 11 -> 5
+2025-03-14 16:41:09,457 - root - INFO - Valid move after calculation: 11 -> 9
+2025-03-14 16:41:09,457 - root - INFO - NardePatched.get_perspective_board: current_player=1
+2025-03-14 16:41:09,457 - root - INFO -   Returning white perspective: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,459 - root - INFO - AI selected move 1: (11, 5)
+2025-03-14 16:41:09,459 - root - INFO - Head move made for black using die value 6
+2025-03-14 16:41:09,459 - root - INFO - NardePatched.execute_rotated_move: move=(11, 5), current_player='black'
+2025-03-14 16:41:09,459 - root - INFO -   Executing black move: (11, 5)
+2025-03-14 16:41:09,459 - root - INFO -   _execute_move: from_pos=11, to_pos=5, is_white=False
+2025-03-14 16:41:09,459 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,459 - root - INFO -   Black moving from 11 to 5
+2025-03-14 16:41:09,460 - root - INFO -   Board after: [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,460 - root - INFO - Used die value 6, remaining: [2]
+2025-03-14 16:41:09,460 - root - INFO - Calculating valid moves using dice: [2]
+2025-03-14 16:41:09,460 - root - INFO - NardePatched.get_valid_moves: dice=[2], current_player='black'
+2025-03-14 16:41:09,460 - root - INFO -   Valid moves from original: [(17, 15), (23, 21)]
+2025-03-14 16:41:09,460 - root - INFO -   Rotated moves for black: [(17, 3), (11, 9)]
+2025-03-14 16:41:09,460 - root - INFO - Adding valid move: 5 -> 3
+2025-03-14 16:41:09,460 - root - INFO - Valid move after calculation: 17 -> 3
+2025-03-14 16:41:09,460 - root - INFO - Valid move after calculation: 11 -> 9
+2025-03-14 16:41:09,460 - root - INFO - Valid move after calculation: 11 -> 5
+2025-03-14 16:41:09,460 - root - INFO - Valid move after calculation: 5 -> 3
+2025-03-14 16:41:09,460 - root - INFO - NardePatched.get_perspective_board: current_player=1
+2025-03-14 16:41:09,460 - root - INFO -   Returning white perspective: [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,461 - root - INFO - AI selected move 2: (5, 3)
+2025-03-14 16:41:09,461 - root - INFO - NardePatched.execute_rotated_move: move=(5, 3), current_player='black'
+2025-03-14 16:41:09,461 - root - INFO -   Executing black move: (5, 3)
+2025-03-14 16:41:09,461 - root - INFO -   _execute_move: from_pos=5, to_pos=3, is_white=False
+2025-03-14 16:41:09,461 - root - INFO -   Board before: [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,461 - root - INFO -   Black moving from 5 to 3
+2025-03-14 16:41:09,461 - root - INFO -   Board after: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:09,461 - root - INFO - Used die value 2, remaining: []
+2025-03-14 16:41:09,461 - root - INFO - NardePatched.get_valid_moves: dice=[5, 3], current_player='white'
+2025-03-14 16:41:09,462 - root - INFO -   Added new valid moves by considering dice separately: [(23, 20)]
+2025-03-14 16:41:09,462 - root - INFO -   Valid moves from original: [(15, 10), (23, 18), (15, 12), (23, 20)]
+2025-03-14 16:41:09,462 - root - INFO - Found 4 valid moves from game engine for white
+2025-03-14 16:41:09,462 - root - INFO - After board scan: found 4 valid moves for white
+2025-03-14 16:41:09,462 - root - INFO - Position 15 has 2 valid moves: [(15, 10), (15, 12)]
+2025-03-14 16:41:09,462 - root - INFO - Position 23 has 2 valid moves: [(23, 18), (23, 20)]
+2025-03-14 16:41:09,463 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:09] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:14,538 - root - INFO - NardePatched.get_valid_moves: dice=[6, 1], current_player='white'
+2025-03-14 16:41:14,538 - root - INFO -   Added new valid moves by considering dice separately: [(23, 22)]
+2025-03-14 16:41:14,538 - root - INFO -   Valid moves from original: [(15, 9), (23, 17), (15, 14), (23, 22)]
+2025-03-14 16:41:14,539 - root - INFO - Found 4 valid moves from game engine for white
+2025-03-14 16:41:14,539 - root - INFO - After board scan: found 4 valid moves for white
+2025-03-14 16:41:14,539 - root - INFO - Position 15 has 2 valid moves: [(15, 9), (15, 14)]
+2025-03-14 16:41:14,539 - root - INFO - Position 23 has 2 valid moves: [(23, 17), (23, 22)]
+2025-03-14 16:41:14,539 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:14] "POST /api/roll_dice HTTP/1.1" 200 -
+2025-03-14 16:41:18,508 - root - INFO - Valid destinations for position 23: [17, 22]
+2025-03-14 16:41:18,508 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:18] "POST /api/get_valid_moves HTTP/1.1" 200 -
+2025-03-14 16:41:25,374 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:25,374 - root - INFO - From position: 23, To position: 17
+2025-03-14 16:41:25,374 - root - INFO - Attempting move for white: (23, 17)
+2025-03-14 16:41:25,374 - root - INFO - Head move made for white using die value 6
+2025-03-14 16:41:25,374 - root - INFO - NardePatched.execute_rotated_move: move=(23, 17), current_player='white'
+2025-03-14 16:41:25,374 - root - INFO -   Executing white move directly: (23, 17)
+2025-03-14 16:41:25,375 - root - INFO -   _execute_move: from_pos=23, to_pos=17, is_white=True
+2025-03-14 16:41:25,375 - root - INFO -   Board before: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 13]
+2025-03-14 16:41:25,375 - root - INFO -   White moving from 23 to 17
+2025-03-14 16:41:25,375 - root - INFO -   Board after: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:25,375 - root - INFO - Used die value 6, remaining: [1]
+2025-03-14 16:41:25,375 - root - INFO - Calculating valid moves using dice: [1]
+2025-03-14 16:41:25,375 - root - INFO - NardePatched.get_valid_moves: dice=[1], current_player='white'
+2025-03-14 16:41:25,375 - root - INFO -   Valid moves from original: [(15, 14), (23, 22)]
+2025-03-14 16:41:25,375 - root - INFO - Adding valid move: 17 -> 16
+2025-03-14 16:41:25,376 - root - INFO - Valid move after calculation: 15 -> 14
+2025-03-14 16:41:25,376 - root - INFO - Valid move after calculation: 23 -> 22
+2025-03-14 16:41:25,376 - root - INFO - Valid move after calculation: 15 -> 9
+2025-03-14 16:41:25,376 - root - INFO - Valid move after calculation: 23 -> 17
+2025-03-14 16:41:25,376 - root - INFO - Valid move after calculation: 17 -> 16
+2025-03-14 16:41:25,376 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:25] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:26,757 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:41:26,757 - root - INFO - From position: 15, To position: 14
+2025-03-14 16:41:26,757 - root - INFO - Attempting move for white: (15, 14)
+2025-03-14 16:41:26,757 - root - INFO - NardePatched.execute_rotated_move: move=(15, 14), current_player='white'
+2025-03-14 16:41:26,758 - root - INFO -   Executing white move directly: (15, 14)
+2025-03-14 16:41:26,758 - root - INFO -   _execute_move: from_pos=15, to_pos=14, is_white=True
+2025-03-14 16:41:26,758 - root - INFO -   Board before: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 0, 2, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,758 - root - INFO -   White moving from 15 to 14
+2025-03-14 16:41:26,758 - root - INFO -   Board after: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,758 - root - INFO - Used die value 1, remaining: []
+2025-03-14 16:41:26,758 - root - INFO - NardePatched.get_valid_moves: dice=[3, 1], current_player='black'
+2025-03-14 16:41:26,758 - root - INFO -   Added new valid moves by considering dice separately: [(23, 22)]
+2025-03-14 16:41:26,758 - root - INFO -   Valid moves from original: [(15, 12), (23, 20), (15, 14), (23, 22)]
+2025-03-14 16:41:26,758 - root - INFO -   Rotated moves for black: [(15, 0), (11, 8), (15, 2), (11, 10)]
+2025-03-14 16:41:26,758 - root - INFO - Found 4 valid moves from game engine for black
+2025-03-14 16:41:26,759 - root - INFO - Adding valid move: 3 -> 0
+2025-03-14 16:41:26,759 - root - INFO - Adding valid move: 3 -> 2
+2025-03-14 16:41:26,759 - root - INFO - After board scan: found 6 valid moves for black
+2025-03-14 16:41:26,759 - root - INFO - Position 15 has 2 valid moves: [(15, 0), (15, 2)]
+2025-03-14 16:41:26,759 - root - INFO - Position 11 has 2 valid moves: [(11, 8), (11, 10)]
+2025-03-14 16:41:26,759 - root - INFO - Position 3 has 2 valid moves: [(3, 0), (3, 2)]
+2025-03-14 16:41:26,759 - root - INFO - AI rolled: [3, 1]
+2025-03-14 16:41:26,759 - root - INFO - Calculating valid moves using dice: [3, 1]
+2025-03-14 16:41:26,759 - root - INFO - NardePatched.get_valid_moves: dice=[3, 1], current_player='black'
+2025-03-14 16:41:26,759 - root - INFO -   Added new valid moves by considering dice separately: [(23, 22)]
+2025-03-14 16:41:26,759 - root - INFO -   Valid moves from original: [(15, 12), (23, 20), (15, 14), (23, 22)]
+2025-03-14 16:41:26,759 - root - INFO -   Rotated moves for black: [(15, 0), (11, 8), (15, 2), (11, 10)]
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 15 -> 0
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 11 -> 8
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 15 -> 2
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 11 -> 10
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 3 -> 0
+2025-03-14 16:41:26,760 - root - INFO - Valid move after calculation: 3 -> 2
+2025-03-14 16:41:26,760 - root - INFO - NardePatched.get_perspective_board: current_player=1
+2025-03-14 16:41:26,760 - root - INFO -   Returning white perspective: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,761 - root - INFO - AI selected move 1: (3, 0)
+2025-03-14 16:41:26,761 - root - INFO - NardePatched.execute_rotated_move: move=(3, 0), current_player='black'
+2025-03-14 16:41:26,761 - root - INFO -   Executing black move: (3, 0)
+2025-03-14 16:41:26,761 - root - INFO -   _execute_move: from_pos=3, to_pos=0, is_white=False
+2025-03-14 16:41:26,761 - root - INFO -   Board before: [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,761 - root - INFO -   Black moving from 3 to 0
+2025-03-14 16:41:26,761 - root - INFO -   Board after: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,761 - root - INFO - Used die value 3, remaining: [1]
+2025-03-14 16:41:26,761 - root - INFO - Calculating valid moves using dice: [1]
+2025-03-14 16:41:26,761 - root - INFO - NardePatched.get_valid_moves: dice=[1], current_player='black'
+2025-03-14 16:41:26,762 - root - INFO -   Valid moves from original: [(23, 22)]
+2025-03-14 16:41:26,762 - root - INFO -   Rotated moves for black: [(11, 10)]
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 11 -> 10
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 15 -> 0
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 11 -> 8
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 15 -> 2
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 3 -> 0
+2025-03-14 16:41:26,762 - root - INFO - Valid move after calculation: 3 -> 2
+2025-03-14 16:41:26,762 - root - INFO - NardePatched.get_perspective_board: current_player=1
+2025-03-14 16:41:26,762 - root - INFO -   Returning white perspective: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,762 - root - INFO - AI selected move 2: (3, 0)
+2025-03-14 16:41:26,763 - root - INFO - NardePatched.execute_rotated_move: move=(3, 0), current_player='black'
+2025-03-14 16:41:26,763 - root - INFO -   Executing black move: (3, 0)
+2025-03-14 16:41:26,763 - root - INFO -   _execute_move: from_pos=3, to_pos=0, is_white=False
+2025-03-14 16:41:26,763 - root - INFO -   Board before: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -14, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 12]
+2025-03-14 16:41:26,763 - root - ERROR -   No black piece at position 3
+2025-03-14 16:41:26,763 - root - WARNING - Die value 3 not found in remaining dice: [1]
+2025-03-14 16:41:26,763 - root - WARNING - Fallback: Used first available die 1
+2025-03-14 16:41:26,763 - root - INFO - NardePatched.get_valid_moves: dice=[4, 1], current_player='white'
+2025-03-14 16:41:26,763 - root - INFO -   Added new valid moves by considering dice separately: [(23, 22)]
+2025-03-14 16:41:26,763 - root - INFO -   Valid moves from original: [(12, 8), (23, 19), (23, 22)]
+2025-03-14 16:41:26,763 - root - INFO - Found 3 valid moves from game engine for white
+2025-03-14 16:41:26,764 - root - INFO - Adding valid move: 14 -> 10
+2025-03-14 16:41:26,764 - root - INFO - Adding valid move: 14 -> 13
+2025-03-14 16:41:26,764 - root - INFO - Adding valid move: 15 -> 14
+2025-03-14 16:41:26,764 - root - INFO - Adding valid move: 17 -> 13
+2025-03-14 16:41:26,764 - root - INFO - Adding valid move: 17 -> 16
+2025-03-14 16:41:26,764 - root - INFO - After board scan: found 8 valid moves for white
+2025-03-14 16:41:26,764 - root - INFO - Position 12 has 1 valid moves: [(12, 8)]
+2025-03-14 16:41:26,765 - root - INFO - Position 23 has 2 valid moves: [(23, 19), (23, 22)]
+2025-03-14 16:41:26,765 - root - INFO - Position 14 has 2 valid moves: [(14, 10), (14, 13)]
+2025-03-14 16:41:26,765 - root - INFO - Position 15 has 1 valid moves: [(15, 14)]
+2025-03-14 16:41:26,766 - root - INFO - Position 17 has 2 valid moves: [(17, 13), (17, 16)]
+2025-03-14 16:41:26,766 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:26] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:41:33,263 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:33] "[36mGET /static/css/backgammon.css HTTP/1.1[0m" 304 -
+2025-03-14 16:41:33,263 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:41:33] "[36mGET /static/css/ribbons.css HTTP/1.1[0m" 304 -
+2025-03-14 16:50:38,504 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/my_game/narde_game_manager.py', reloading
+2025-03-14 16:50:39,035 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:50:40,134 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:50:40,142 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:51:09,454 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5858
+2025-03-14 16:51:09,454 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-03-14 16:51:09,459 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:51:10,232 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:51:10,240 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:51:15,079 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET / HTTP/1.1" 200 -
+2025-03-14 16:51:15,132 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 16:51:15,132 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 16:51:15,133 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 16:51:15,200 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,203 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,207 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,210 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,213 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,213 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 16:51:15,213 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:15] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 16:51:17,620 - root - INFO - NardePatched.get_valid_moves: dice=[5, 2], current_player='white'
+2025-03-14 16:51:17,621 - root - INFO -   Added new valid moves by considering dice separately: [(23, 21)]
+2025-03-14 16:51:17,621 - root - INFO -   Valid moves from original: [(23, 18), (23, 21)]
+2025-03-14 16:51:17,621 - root - INFO - Found 2 valid moves from game engine for white
+2025-03-14 16:51:17,621 - root - INFO - After board scan: found 2 valid moves for white
+2025-03-14 16:51:17,621 - root - INFO - Position 23 has 2 valid moves: [(23, 18), (23, 21)]
+2025-03-14 16:51:17,622 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:17] "POST /api/new_game HTTP/1.1" 200 -
+2025-03-14 16:51:20,181 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 16:51:20,182 - root - INFO - From position: 23, To position: 21
+2025-03-14 16:51:20,182 - root - INFO - Attempting move for white: (23, 21)
+2025-03-14 16:51:20,182 - root - INFO - Head move made for white using die value 2
+2025-03-14 16:51:20,182 - root - INFO - NardePatched.execute_rotated_move: move=(23, 21), current_player='white'
+2025-03-14 16:51:20,182 - root - INFO -   Executing white move directly: (23, 21)
+2025-03-14 16:51:20,183 - root - INFO -   _execute_move: from_pos=23, to_pos=21, is_white=True
+2025-03-14 16:51:20,183 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]
+2025-03-14 16:51:20,183 - root - INFO -   White moving from 23 to 21
+2025-03-14 16:51:20,183 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 14]
+2025-03-14 16:51:20,183 - root - INFO - Used die value 2, remaining: [5]
+2025-03-14 16:51:20,183 - root - INFO - Calculating valid moves using dice: [5]
+2025-03-14 16:51:20,183 - root - INFO - NardePatched.get_valid_moves: dice=[5], current_player='white'
+2025-03-14 16:51:20,183 - root - INFO -   Valid moves from original: [(23, 18)]
+2025-03-14 16:51:20,183 - root - INFO - Adding valid move: 21 -> 16
+2025-03-14 16:51:20,183 - root - INFO - Valid move after calculation: 23 -> 18
+2025-03-14 16:51:20,183 - root - INFO - Valid move after calculation: 23 -> 21
+2025-03-14 16:51:20,183 - root - INFO - Valid move after calculation: 21 -> 16
+2025-03-14 16:51:20,184 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 16:51:20] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 16:57:02,880 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/gym_narde/envs/narde.py', reloading
+2025-03-14 16:57:02,890 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/gym_narde/envs/narde.py', reloading
+2025-03-14 16:57:03,936 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:57:04,914 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:57:04,923 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 16:58:06,332 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/gym_narde/envs/narde.py', reloading
+2025-03-14 16:58:06,332 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/gym_narde/envs/narde.py', reloading
+2025-03-14 16:58:06,333 - werkzeug - INFO -  * Detected change in '/Users/dleonenko/gym-narde/gym_narde/envs/narde.py', reloading
+2025-03-14 16:58:06,573 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 16:58:07,379 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 16:58:07,386 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 17:02:36,740 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5858
+2025-03-14 17:02:36,741 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-03-14 17:02:36,747 - werkzeug - INFO -  * Restarting with watchdog (fsevents)
+2025-03-14 17:02:37,558 - werkzeug - WARNING -  * Debugger is active!
+2025-03-14 17:02:37,568 - werkzeug - INFO -  * Debugger PIN: 192-099-044
+2025-03-14 17:02:40,000 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET / HTTP/1.1" 200 -
+2025-03-14 17:02:40,051 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 17:02:40,051 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 17:02:40,052 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 17:02:40,162 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,165 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,168 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,168 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,173 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,181 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,181 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 17:02:40,333 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:40] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-03-14 17:02:45,058 - root - INFO - NardePatched.get_valid_moves: dice=[5, 1], current_player='white'
+2025-03-14 17:02:45,058 - root - INFO -   Added new valid moves by considering dice separately: [(23, 22)]
+2025-03-14 17:02:45,058 - root - INFO -   Valid moves from original: [(23, 18), (23, 22)]
+2025-03-14 17:02:45,059 - root - INFO - Found 2 valid moves from game engine for white
+2025-03-14 17:02:45,059 - root - INFO - After board scan: found 2 valid moves for white
+2025-03-14 17:02:45,059 - root - INFO - Position 23 has 2 valid moves: [(23, 18), (23, 22)]
+2025-03-14 17:02:45,060 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:45] "POST /api/new_game HTTP/1.1" 200 -
+2025-03-14 17:02:56,975 - root - INFO - === MAKE_MOVE REQUEST ===
+2025-03-14 17:02:56,975 - root - INFO - From position: 23, To position: 22
+2025-03-14 17:02:56,976 - root - INFO - Attempting move for white: (23, 22)
+2025-03-14 17:02:56,976 - root - INFO - Head move made for white using die value 1
+2025-03-14 17:02:56,976 - root - INFO - NardePatched.execute_rotated_move: move=(23, 22), current_player='white'
+2025-03-14 17:02:56,976 - root - INFO -   Executing white move directly: (23, 22)
+2025-03-14 17:02:56,976 - root - INFO -   _execute_move: from_pos=23, to_pos=22, is_white=True
+2025-03-14 17:02:56,976 - root - INFO -   Board before: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]
+2025-03-14 17:02:56,976 - root - INFO -   White moving from 23 to 22
+2025-03-14 17:02:56,976 - root - INFO -   Board after: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 14]
+2025-03-14 17:02:56,976 - root - INFO - Used die value 1, remaining: [5]
+2025-03-14 17:02:56,976 - root - INFO - Calculating valid moves using dice: [5]
+2025-03-14 17:02:56,976 - root - INFO - NardePatched.get_valid_moves: dice=[5], current_player='white'
+2025-03-14 17:02:56,976 - root - INFO -   Valid moves from original: [(23, 18)]
+2025-03-14 17:02:56,977 - root - INFO - Adding valid move: 22 -> 17
+2025-03-14 17:02:56,977 - root - INFO - Valid move after calculation: 23 -> 18
+2025-03-14 17:02:56,977 - root - INFO - Valid move after calculation: 23 -> 22
+2025-03-14 17:02:56,977 - root - INFO - Valid move after calculation: 22 -> 17
+2025-03-14 17:02:56,977 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:02:56] "POST /api/make_move HTTP/1.1" 200 -
+2025-03-14 17:03:00,414 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:03:00] "[36mGET /static/css/ribbons.css HTTP/1.1[0m" 304 -
+2025-03-14 17:03:00,414 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:03:00] "[36mGET /static/css/backgammon.css HTTP/1.1[0m" 304 -
+2025-03-14 17:05:49,471 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET / HTTP/1.1" 200 -
+2025-03-14 17:05:49,521 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/css/ribbons.css HTTP/1.1" 200 -
+2025-03-14 17:05:49,521 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/css/backgammon.css HTTP/1.1" 200 -
+2025-03-14 17:05:49,522 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/images/loader.gif HTTP/1.1" 200 -
+2025-03-14 17:05:49,595 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/components/ApiWrapper.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,596 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/components/Comm.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,602 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/components/SimpleBoardUI.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,606 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/components/App.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,614 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/main.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,615 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/MoveValidator.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,615 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "GET /static/js/lib/model.js HTTP/1.1" 200 -
+2025-03-14 17:05:49,729 - werkzeug - INFO - 127.0.0.1 - - [14/Mar/2025 17:05:49] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
