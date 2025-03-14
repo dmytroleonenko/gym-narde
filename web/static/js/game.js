@@ -333,8 +333,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // DIRECT HEAD RULE CHECK: Prevent head moves after first one
                     let canMove = position in gameState.validMovesByPiece;
                     
-                    // Explicitly check head rule
-                    if (position === gameState.HEAD_POSITIONS?.white && gameState.headMoveMade) {
+                    // Explicitly check head rule by testing both flags
+                    if (position === gameState.HEAD_POSITIONS?.white && (gameState.headMoveMade || gameState.headMovesMade > 0)) {
                         console.log(`BLOCKED HEAD MOVE in renderBoard: Cannot make second move from head position ${position}`);
                         canMove = false;
                     }
@@ -770,9 +770,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     gameState.validMovesByPiece = data.valid_moves_by_piece;
                     
                     // FORCE head move removal regardless of count - this is a more aggressive approach
-                    if (fromPosition === gameState.HEAD_POSITIONS?.white) {
-                        console.log("HEAD MOVE FORCED FILTERING: Removing head position 23 from valid moves after head move");
-                        delete gameState.validMovesByPiece[gameState.HEAD_POSITIONS.white];
+                    // Always remove the head key if a head move has occurred
+                    if (gameState.headMovesMade > 0) {
+                        console.log("HEAD MOVE FORCED FILTERING: Removing head position from valid moves after head move");
+                        delete gameState.validMovesByPiece[String(gameState.HEAD_POSITIONS.white)];
                     }
                     
                     // Normal filtering based on count
