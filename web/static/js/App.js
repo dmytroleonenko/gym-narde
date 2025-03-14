@@ -208,6 +208,12 @@ class App {
     comm.subscribe('boardUpdated', (data) => {
       console.log('App handling boardUpdated:', data);
       
+      // If the server reports the last move was from the head (23),
+      // and not special doubles, mark headMoveUsed so no second head move is displayed.
+      if (data.last_move && data.last_move.from_position === 23 && !this.isSpecialDoublesCase()) {
+        this.headMoveUsed = true;
+      }
+      
       // Preserve headMoveMade state if this is a partial board update
       const headMoveMade = data.headMoveMade !== undefined ? 
         data.headMoveMade : 
