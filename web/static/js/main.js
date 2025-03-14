@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Create and initialize app with container ID
   const app = new App('backgammon');
+  // Make sure the Comm module can find the API wrapper
+  window.api = app.api;
   
   // Start a new game automatically after App is fully initialized
   setTimeout(() => { comm.send('newGame'); }, 500);
