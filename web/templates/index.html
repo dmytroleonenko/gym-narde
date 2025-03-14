@@ -1531,9 +1531,16 @@
                 console.log(`Die value ${dieValue} has been used ${usedCount} times out of 4 possible times`);
                 
                 // ***** FIX: Block doubles calculation from the head if a head move was already made *****
-                if (position === gameState.HEAD_POSITIONS?.white && gameState.headMovesMade > 0) {
-                  console.log("Skipping doubles calculation for head position because a head move has already been performed");
-                  return;
+                if (position === gameState.HEAD_POSITIONS?.white) {
+                  const isFirstTurnSpecialDoubles = gameState.isFirstTurn && gameState.dice && gameState.dice.length >= 2 &&
+                    gameState.dice[0] === gameState.dice[1] && [3,4,6].includes(gameState.dice[0]);
+                  if (!isFirstTurnSpecialDoubles && gameState.headMovesMade > 0) {
+                    console.log("Skipping doubles calculation for head position because a head move has already been performed");
+                    return;
+                  } else if (isFirstTurnSpecialDoubles && gameState.headMovesMade >= 2) {
+                    console.log("Skipping doubles calculation for head position because maximum head moves reached for special doubles");
+                    return;
+                  }
                 }
                 
                 // For doubles, we have up to 4 of the same die value
