@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const position = parseInt(this.getAttribute('data-position'));
         
         // DIRECT CHECK: Hard-block the head position if already made a head move
-        if (position === gameState.HEAD_POSITIONS?.white && gameState.headMoveMade) {
+        if (position === gameState.HEAD_POSITIONS?.white && (gameState.headMoveMade || gameState.headMovesMade > 0)) {
             console.log("BLOCKED HEAD MOVE in startDrag: Cannot make second move from head position");
             showModal("Only one checker may leave the head position per turn");
             return;
