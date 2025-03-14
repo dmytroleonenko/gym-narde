@@ -1,0 +1,57 @@
+{
+  "DiceComponent.js": {
+    "classes": ["DiceComponent"],
+    "summary": "Manages dice UI and events (updating values, click handling, marking dice as used/available, and special doubles notifications)."
+  },
+  "PieceComponent.js": {
+    "classes": ["PieceComponent"],
+    "summary": "Handles individual game pieces including dragging, dropping, and click events."
+  },
+  "components/Comm.js": {
+    "classes": ["Comm"],
+    "summary": "Provides communication via subscribing, dispatching, and sending messages (singleton instance 'comm') for app-wide events."
+  },
+  "MoveValidator.js": {
+    "classes": ["MoveValidator"],
+    "summary": "Validates moves based on board state, dice values, head move rules, and overall game rules."
+  },
+  "components/App.js": {
+    "classes": ["App"],
+    "summary": "Main application entry point for AI gameplay; manages game state, view transitions, and user interaction for AI mode."
+  },
+  "PointComponent.js": {
+    "classes": ["PointComponent"],
+    "summary": "Renders a board point (triangle) and triggers point selection events."
+  },
+  "game.js": {
+    "functions": ["startNewGame", "renderDice", "renderBoard", "renderBorneOff", "getValidMoves", "makeMove", "..."],
+    "summary": "Initializes game state, sets up DOM event listeners (drag/drop, button clicks, modal handling), and synchronizes moves with the server."
+  },
+  "BoardContainer.js": {
+    "classes": ["BoardContainer"],
+    "summary": "Constructs and manages the board layout including points, rows, bearing-off zone, and rule notification visuals (head rule, special doubles, block warnings)."
+  },
+  "ActionPanel.js": {
+    "classes": ["ActionPanel"],
+    "summary": "Manages the action panel UI (roll, confirm, undo, new game buttons) and displays status messages based on game progress."
+  },
+  "components/ApiWrapper.js": {
+    "classes": ["ApiWrapper"],
+    "summary": "Handles API calls to the server for starting a game, rolling dice, making moves, confirming moves, undoing moves, and resigning."
+  },
+  "components/SimpleBoardUI.js": {
+    "classes": ["SimpleBoardUI"],
+    "summary": "Renders the board UI including piece creation, board resets, compacting positions, and displaying notifications."
+  },
+  "Comm.js": {
+    "classes": ["Comm"],
+    "summary": "Alternate communication module that manages global events and maintains an extended game state for syncing UI actions."
+  },
+  "main.js": {
+    "summary": "Main entry point; initializes the application by creating an App instance and triggering a new game on DOMContentLoaded."
+  },
+  "App.js": {
+    "classes": ["App"],
+    "summary": "Primary client-side application class that binds UI components (BoardContainer, ActionPanel, DiceComponent), subscribes to events, and manages game interactions."
+  }
+}
