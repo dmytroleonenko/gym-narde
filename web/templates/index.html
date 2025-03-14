@@ -544,7 +544,9 @@
         selectedPosition: null,
         validDestinations: [],
         gameInProgress: false,
-        usedDice: [] // Track which dice have been used
+        usedDice: [] // Track which dice have been used,
+        HEAD_POSITIONS: { white: 23, black: 11 },
+        isFirstTurn: true, // so that "special doubles on first turn" logic works
       };
       
       // Initialize board with starting positions
