@@ -985,8 +985,7 @@ SimpleBoardUI.prototype = {
     $(id).text(dice.values[index]);
 
     // Change image based on value
-    $(id).removeClass('digit-1-white digit-2-white digit-3-white digit-4-white digit-5-white digit-6-white digit-1-black digit-2-black digit-
--black digit-4-black digit-5-black digit-6-black played');
+    $(id).removeClass('digit-1-white digit-2-white digit-3-white digit-4-white digit-5-white digit-6-white digit-1-black digit-2-black digit-3-black digit-4-black digit-5-black digit-6-black played');
     $(id).addClass('digit-' + dice.values[index] + '-' + color);
 
     // Mark as played if already used
