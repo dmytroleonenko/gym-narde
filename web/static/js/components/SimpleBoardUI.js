@@ -45,7 +45,7 @@ SimpleBoardUI.prototype = {
    */
   init: function() {
     // Get container from client config
-    this.container = $('#' + this.client.config.containerID);
+    this.container = $('#' + this.client._config.containerID);
 
     // Add board template
     this.container.append($('#tmpl-board').html());
