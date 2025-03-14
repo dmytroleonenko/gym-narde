@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Create and initialize app with container ID
   const app = new App('backgammon');
+  app.init();
   window.api = app.api;
   console.log("window.api has been set:", window.api);
   // Store app in global scope for debugging
