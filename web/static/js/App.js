@@ -186,10 +186,13 @@ class App {
       console.log('App handling validMovesReceived:', data);
       const { position, validDestinations } = data;
       
+      console.log('Debug - headMoveUsed:', this.headMoveUsed, 'headMoveMade:', this.gameState.headMoveMade, 'isSpecialDoublesCase:', this.isSpecialDoublesCase());
       let filteredDestinations = validDestinations;
       if (position === 23 && (this.headMoveUsed || this.gameState.headMoveMade) && !this.isSpecialDoublesCase()) {
+          console.log('Filtering out valid moves for head position (23) because a head move has already occurred.');
           filteredDestinations = [];
       }
+      console.log('Filtered destinations for position', position, ':', filteredDestinations);
       
       // Update valid destinations
       this.gameState.validDestinations = filteredDestinations;
