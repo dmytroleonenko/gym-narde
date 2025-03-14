@@ -261,9 +261,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("🚫 NUCLEAR BLOCKING: Force removing head position 23 from valid moves");
             
             // Remove head position from valid moves
-            if (gameState.validMovesByPiece && gameState.validMovesByPiece[23]) {
-                console.log(`🚫 Removed head position 23 from valid moves`);
-                delete gameState.validMovesByPiece[23];
+            if (gameState.validMovesByPiece && gameState.validMovesByPiece[String(gameState.HEAD_POSITIONS.white)]) {
+                console.log(`🚫 Removed head position ${gameState.HEAD_POSITIONS.white} from valid moves`);
+                delete gameState.validMovesByPiece[String(gameState.HEAD_POSITIONS.white)];
             }
             
             // Set the global block flag
