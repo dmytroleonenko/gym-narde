@@ -94,7 +94,12 @@ Comm.prototype = {
       case 'undo':
         return window.api.reqUndoMoves();
       case 'newGame':
-        return window.api.reqNewGame();
+        if (window.api && window.api.reqNewGame) {
+          return window.api.reqNewGame();
+        } else {
+          console.error('API is not available. Cannot start new game.');
+          return Promise.reject('API is not available');
+        }
       default:
         console.error('Unknown message type in send:', msg);
         return;
