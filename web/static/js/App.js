@@ -193,6 +193,7 @@ class App {
       let filteredDestinations = validDestinations;
       if (position === 23 && (this.headMoveUsed || this.gameState.headMoveMade) && !this.isSpecialDoublesCase()) {
           console.log('Filtering out valid moves for head position (23) because a head move has already occurred.');
+          // Force empty destinations so the second head move is not highlighted
           filteredDestinations = [];
       }
       console.log('Filtered destinations for position', position, ':', filteredDestinations);
