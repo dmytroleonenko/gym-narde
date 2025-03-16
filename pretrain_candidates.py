@@ -1,6 +1,8 @@
 import os
 import argparse
 import torch
+import gymnasium as gym
+import numpy as np
 import copy
 from train_deepq_pytorch import DQNAgent, DecomposedDQN
 
@@ -27,14 +29,40 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
         agent.learning_rate = learning_rate
         agent.optimizer = torch.optim.Adam(agent.model.parameters(), lr=learning_rate)
         
-        # Run a minimal training loop (this is a very simplified version)
+        # Create an environment for pretraining and attach it to the agent.
+        agent.env = gym.make('Narde-v0', render_mode=None)
+
+        # Training loop for this candidate:
         for ep in range(episodes):
-            state, _ = agent.env.reset() if hasattr(agent, "env") else (None, None)
-            # (This simple loop assumes you have a method to sample an experience and update the model.
-            # You can simply run “agent.replay()” repeatedly after filling the memory.
-            # Here, you might simulate a few steps via agent.act() and agent.remember(), then call agent.replay().)
-            # In practice, duplicate a simplified version of your training loop from train_deepq_pytorch.py.
-            pass  # Replace with your training sub-loop
+            state, _ = agent.env.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                # Sample dice for this turn
+                dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+                # Get valid moves from the game logic
+                valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
+                if len(valid_moves) == 0:
+                    action = (0, 0)  # Skip turn if no valid moves
+                else:
+                    # Use agent.act to select an action with exploration (training=True)
+                    action = agent.act(state, valid_moves=valid_moves, env=agent.env,
+                                       dice=dice, current_player=agent.env.unwrapped.current_player,
+                                       training=True)
+                # Step the environment with the chosen action
+                next_state, reward, done, truncated, _ = agent.env.step(action)
+                done = done or truncated
+                # Store the experience
+                agent.remember(state, action, reward, next_state, done)
+                total_reward += reward
+                state = next_state
+                # Train the agent if enough samples have been collected
+                if len(agent.memory) >= agent.batch_size:
+                    agent.replay()
+            print(f"Candidate {i+1}, Episode {ep+1}/{episodes}: Total Reward = {total_reward:.2f}")
+        
+        # Optionally, close the environment when done training this candidate.
+        agent.env.close()
             
         # After training, save the candidate model.
         candidate_path = os.path.join(save_dir, f"candidate_{i+1}.pt")
