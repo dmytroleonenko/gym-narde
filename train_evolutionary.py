@@ -1,4 +1,5 @@
 import os
+import glob
 import gymnasium as gym
 import torch
 import torch.nn as nn
@@ -17,6 +18,16 @@ ELITE_FRACTION = 0.2
 
 # Create evaluation environment (using your custom gym)
 env = gym.make('Narde-v0', render_mode=None)
+
+def load_pretrained_population(pretrain_dir):
+    """Loads candidate models from the specified folder and returns a list of models."""
+    model_files = glob.glob(os.path.join(pretrain_dir, "*.pt"))
+    population = []
+    for f in model_files:
+        model = DecomposedDQN(state_size=28, move_space_size=576)
+        model.load_state_dict(torch.load(f, map_location=torch.device("cpu")))
+        population.append(model)
+    return population
 
 def simulate_game(model_white, model_black, max_steps=1000):
     """
@@ -131,15 +142,28 @@ def mutate_model(model, std=MUTATION_STD):
         param.data.add_(noise)
     return child
 
-def main():
+def main(pretrained_dir=None):
     # Create a dedicated output directory for saving models
     save_dir = os.path.join(os.getcwd(), "evolved_models")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    base_model = DecomposedDQN(state_size=28, move_space_size=576)
-    base_model.to(torch.device("cpu"))
-    # For evolution, we don't need an optimizer since we use random mutations
-    population = [copy.deepcopy(base_model) for _ in range(POPULATION_SIZE)]
+    # Instead of creating a base model and duplicating it,
+    # check if a pretrained folder is specified.
+    if pretrained_dir is not None:
+        print(f"Loading pretrained candidates from {pretrained_dir}...")
+        population = load_pretrained_population(pretrained_dir)
+        # If the loaded population is less than the expected POPULATION_SIZE,
+        # you can either error out or duplicate some.
+        if len(population) < POPULATION_SIZE:
+            print(f"Only {len(population)} models loaded; duplicating to reach population size {POPULATION_SIZE}.")
+            while len(population) < POPULATION_SIZE:
+                population.extend(copy.deepcopy(population))
+            population = population[:POPULATION_SIZE]
+    else:
+        # Fall back to the original approach: create the base model and duplicate it.
+        base_model = DecomposedDQN(state_size=28, move_space_size=576)
+        base_model.to(torch.device("cpu"))
+        population = [copy.deepcopy(base_model) for _ in range(POPULATION_SIZE)]
     
     best_fitness = -float("inf")
     best_model = None
@@ -196,6 +220,8 @@ if __name__ == "__main__":
     parser.add_argument('--max-steps-match', type=int, default=1000, help="Max steps per game during tournament matches")
     parser.add_argument('--parallel-games', type=int, default=8, help="Number of games to run in parallel during tournament")
     
+    parser.add_argument('--pretrained-dir', type=str, default=None, help="Folder with pretrained candidate models")
+    
     args = parser.parse_args()
     
     # Override tournament hyperparameters with CLI parameters
@@ -210,4 +236,6 @@ if __name__ == "__main__":
     MUTATION_STD = args.mutation_std
     ELITE_FRACTION = args.elite_fraction
     
-    main()
+    pretrained_dir = args.pretrained_dir  # capture the CLI argument for pretrained folder
+    
+    main(pretrained_dir=pretrained_dir)
