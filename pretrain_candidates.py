@@ -65,8 +65,8 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
 
             # Sample dice for this turn
             dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-                # Get valid moves from the game logic
-                valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
+            # Get valid moves from the game logic
+            valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
                 if len(valid_moves) == 0:
                     action = (0, 0)  # Skip turn if no valid moves
                 else:
