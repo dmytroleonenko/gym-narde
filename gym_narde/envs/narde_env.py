@@ -66,6 +66,21 @@ class NardeEnv(gym.Env):
                 print("[DEBUG] Two consecutive skip-turns detected!")
                 print("Board state:", self.game.board)
                 print("Dice roll:", self.dice)
+                print("Current player:", "White" if self.current_player == 1 else "Black")
+                print("Borne off - White:", self.game.borne_off_white, "Black:", self.game.borne_off_black)
+                print("First turn - White:", self.game.first_turn_white, "Black:", self.game.first_turn_black)
+                print("Valid moves:", valid_moves)
+                print("Potential reasons for no valid moves:")
+                if self.current_player == 1:
+                    if self.game.first_turn_white and not any(die in [3, 4, 6] for die in self.dice):
+                        print("- First turn for White without doubles 3, 4, or 6.")
+                else:
+                    if self.game.first_turn_black and not any(die in [3, 4, 6] for die in self.dice):
+                        print("- First turn for Black without doubles 3, 4, or 6.")
+                if all(pos <= 0 for pos in self.game.board[:6]):
+                    print("- All White checkers are in home positions, but no valid bearing off.")
+                if all(pos >= 0 for pos in self.game.board[18:]):
+                    print("- All Black checkers are in home positions, but no valid bearing off.")
             return self._get_obs(), reward, done, False, {}
 
         elif len(valid_moves) == 1:
