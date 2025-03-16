@@ -5,6 +5,38 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
+
+def compute_progress(game, current_player):
+    """
+    Compute remaining progress (sum of pips) and borne-off count.
+    """
+    board = game.get_perspective_board(current_player)
+    remaining_distance = sum(i * max(0, board[i]) for i in range(24))
+    borne_off = game.borne_off_white if current_player == 1 else game.borne_off_black
+    return remaining_distance, borne_off
+
+def compute_coverage_reward(board):
+    """
+    Count number of distinct points with at least 2 checkers.
+    """
+    return sum(1 for point in board if point >= 2)
+
+def compute_block_reward(board):
+    """
+    Compute bonus for consecutive points with at least 2 checkers.
+    """
+    block_bonus = 0
+    consecutive_count = 0
+    for i in range(len(board)):
+        if board[i] >= 2:
+            consecutive_count += 1
+        else:
+            if consecutive_count > 1:
+                block_bonus += (consecutive_count ** 1.5)
+            consecutive_count = 0
+    if consecutive_count > 1:
+        block_bonus += (consecutive_count ** 1.5)
+    return block_bonus
 from collections import deque
 import gym_narde  # Important: Import the custom environment
 from gym_narde.envs.narde import rotate_board  # Import for debugging
@@ -865,53 +897,43 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
             valid_moves = env.unwrapped.game.get_valid_moves(dice, env.unwrapped.current_player)
             
+            # --- New Reward Shaping Start ---
+            # For both cases (valid or non-valid moves), we compute shaping rewards.
+            # If no valid moves, we can simply call env.step(action) using (0,0).
             if len(valid_moves) == 0:
-                # No legal moves; skip turn
                 action = (0, 0)
-                next_state, reward, done, truncated, _ = env.step(action)
-                done = done or truncated
             else:
-                # Choose action using only valid moves
-                action = agent.act(
-                    state=state, 
-                    valid_moves=valid_moves, 
-                    env=env, 
-                    dice=dice, 
-                    current_player=env.unwrapped.current_player,
-                    training=True
-                )
-                
-                # Apply the action to the environment
-                next_state, reward, done, truncated, _ = env.step(action)
-                done = done or truncated
-                
-                # Since we're only using valid moves now, we don't need to check validity
-                # or apply penalties for invalid moves
-                
-                # Calculate how many pieces were borne off in this move
-                if env.unwrapped.current_player == 1:
-                    # For White player
-                    borne_off_before = total_white_off if 'total_white_off' in locals() else 0
-                    total_white_off = env.unwrapped.game.borne_off_white
-                    newly_borne_off = total_white_off - borne_off_before
-                    if newly_borne_off > 0:
-                        # Strong immediate reward for bearing off pieces in this move
-                        reward += 1.0 * newly_borne_off
-                    # Additional cumulative reward for total progress
-                    reward += 0.1 * total_white_off
-                elif env.unwrapped.current_player == -1:
-                    # For Black player
-                    borne_off_before = total_black_off if 'total_black_off' in locals() else 0
-                    total_black_off = env.unwrapped.game.borne_off_black
-                    newly_borne_off = total_black_off - borne_off_before
-                    if newly_borne_off > 0:
-                        # Strong immediate reward for bearing off pieces in this move
-                        reward += 1.0 * newly_borne_off
-                    # Additional cumulative reward for total progress
-                    reward += 0.1 * total_black_off
+                action = agent.act(state, valid_moves=valid_moves, env=env,
+                                   dice=dice, current_player=env.unwrapped.current_player,
+                                   training=True)
+            # Capture OLD board and progress before stepping:
+            old_board = env.unwrapped.game.get_perspective_board(env.unwrapped.current_player)
+            old_head_count = old_board[23]  # Assuming White's head is index 23.
+            prev_distance, prev_borne_off = compute_progress(env.unwrapped.game, env.unwrapped.current_player)
+            
+            # Step the environment.
+            next_state, env_reward, done, truncated, _ = env.step(action)
+            done = done or truncated
 
-                # Add reward based on dice usage (optional)
-                reward += 0.01 * sum(state[24:26])  # Encourage using both dice
+            # Capture NEW board and progress after stepping:
+            new_board = env.unwrapped.game.get_perspective_board(env.unwrapped.current_player)
+            new_head_count = new_board[23]
+            new_distance, new_borne_off = compute_progress(env.unwrapped.game, env.unwrapped.current_player)
+
+            # Compute incremental rewards:
+            progress_reward = 0.001 * (prev_distance - new_distance)
+            borne_off_increment = new_borne_off - prev_borne_off
+            borne_reward = 0.1 * borne_off_increment
+            coverage_reward = 0.0005 * compute_coverage_reward(new_board)
+            # Here we compute block_reward as a bonus difference; in this simple example, we use the current board.
+            block_reward = 0.0001 * compute_block_reward(new_board)
+            head_bonus = 0.0
+            if new_head_count < old_head_count:
+                head_bonus = 0.05 * (old_head_count - new_head_count)
+            
+            # Final shaped reward:
+            reward = env_reward + progress_reward + borne_reward + coverage_reward + block_reward + head_bonus
+            # --- New Reward Shaping End ---
             
             # Remember experience
             agent.remember(state, action, reward, next_state, done)
