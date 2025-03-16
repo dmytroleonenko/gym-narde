@@ -210,8 +210,6 @@ def render_board(board, highlight_from=None, highlight_to=None):
     
     return board_str
 
-# Create the environment
-env = gym.make('Narde-v0', render_mode=None, max_steps=args.max_steps)
 
 class DecomposedDQN(nn.Module):
     def __init__(self, state_size=28, move_space_size=576):
@@ -863,6 +861,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
          verbose=False, verbose_steps=100, log=False, log_file='training_log.txt', 
          use_decomposed_network=True, use_prioritized_replay=True):
     
+    env = gym.make('Narde-v0', render_mode=None, max_steps=max_steps)
     # Set up logging if needed
     log_file_handle = None
     if log:
