@@ -1126,7 +1126,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
         
         # Compute and log loss improvement metrics if available
         improvement_10_str = ""
-        if len(loss_values) >= 20:
+        if (e + 1) >= 10 and len(loss_values) >= 20:
             current_10_avg = np.mean(loss_values[-10:])
             previous_10_avg = np.mean(loss_values[-20:-10])
             improvement_10 = ((previous_10_avg - current_10_avg) / previous_10_avg) * 100
@@ -1135,7 +1135,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             improvement_10_str = ", Loss improvement (last 10): N/A"
 
         improvement_50_str = ""
-        if len(loss_values) >= 100:
+        if (e + 1) >= 50 and len(loss_values) >= 100:
             current_50_avg = np.mean(loss_values[-50:])
             previous_50_avg = np.mean(loss_values[-100:-50])
             improvement_50 = ((previous_50_avg - current_50_avg) / previous_50_avg) * 100
