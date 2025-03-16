@@ -71,8 +71,8 @@ class Narde:
                     if board[new_pos] >= 0:  # Can only land on empty or own point
                         moves.append((pos, new_pos))
                 elif new_pos < 0:
-                    # Check if bearing off is possible
-                    if np.sum(np.maximum(board[6:], 0)) == 0:  # All checkers are in the home quadrant
+                    # Check if bearing off is possible given White's home is positions 0–5
+                    if np.sum(np.maximum(board[:6], 0)) == 15:  # All White's checkers are in positions 0...5
                         if die >= pos + 1:
                             moves.append((pos, 'off'))
         # --- NEW: Filter out moves that create an illegal block (Rule 8) ---
@@ -109,12 +109,16 @@ class Narde:
         from_pos, to_pos = move
         if to_pos == 'off':
             # Bearing off: update borne_off counter and remove a checker.
-            if self.board[from_pos] > 0:  # White
-                self.board[from_pos] -= 1
-                self.borne_off_white += 1
-            else:  # Black (in rotated board, numbers are reversed)
-                self.board[from_pos] += 1
-                self.borne_off_black += 1
+            # For White: allow bearing off if the piece is from a home position (0–5)
+            if from_pos >= 0 and from_pos <= 5:
+                if self.board[from_pos] > 0:  # White's checker
+                    self.board[from_pos] -= 1
+                    self.borne_off_white += 1
+            else:
+                # Otherwise, treat it as Black's bearing off move (or add additional logic if needed)
+                if self.board[from_pos] < 0:
+                    self.board[from_pos] -= 1
+                    self.borne_off_black += 1
         else:
             # Normal move: move one checker from `from_pos` to `to_pos`
             if self.board[from_pos] > 0:
