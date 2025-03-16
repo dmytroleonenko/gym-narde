@@ -27,27 +27,6 @@ class NardeEnv(gym.Env):
         borne_off_high = np.full(2, 15, dtype=np.float32)
         full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
         
-    # Define observation space components before creating the Box
-    board_low = np.full(24, -15, dtype=np.float32)  # Current player's checkers are positive
-    dice_low = np.zeros(2, dtype=np.float32)        # dice values (0–6)
-    borne_off_low = np.zeros(2, dtype=np.float32)    # borme_off counts
-    full_low = np.concatenate([board_low, dice_low, borne_off_low], axis=0)
-    
-    board_high = np.full(24, 15, dtype=np.float32)
-    dice_high = np.full(2, 6, dtype=np.float32)
-    borne_off_high = np.full(2, 15, dtype=np.float32)
-    full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
-    
-    self.observation_space = spaces.Box(
-        low=full_low,
-        high=full_high,
-        shape=(28,),
-        dtype=np.float32
-    )
-    self.action_space = spaces.Tuple((
-        spaces.Discrete(24 * 24),
-        spaces.Discrete(24 * 24)
-    ))
     
     def _get_obs(self):
         # Get board in current player's perspective
@@ -64,39 +43,6 @@ class NardeEnv(gym.Env):
             borne_off = np.array([self.game.borne_off_black, self.game.borne_off_white], dtype=np.float32)
         
         return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
-        self.render_mode = render_mode
-        self.dice = [0, 0]  # Initialize dice to avoid NameError
-        
-        # Define observation space components
-        self.render_mode = render_mode
-        self.render_mode = render_mode
-        board_low = np.full(24, -15, dtype=np.float32)
-        dice_low = np.zeros(2, dtype=np.float32)
-        borne_off_low = np.zeros(2, dtype=np.float32)
-        full_low = np.concatenate([board_low, dice_low, borne_off_low])
-        
-        board_high = np.full(24, 15, dtype=np.float32)
-        dice_high = np.full(2, 6, dtype=np.float32)
-        borne_off_high = np.full(2, 15, dtype=np.float32)
-        full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
-        
-    self.observation_space = spaces.Box(
-        low=full_low,
-        high=full_high,
-        shape=(28,),
-        dtype=np.float32
-    )
-        self.action_space = spaces.Tuple((
-            spaces.Discrete(24 * 24),
-            spaces.Discrete(24 * 24)
-        ))
-
-        self.render_mode = render_mode
-        # Roll two dice at the beginning of the turn
-        self.dice = [0, 0]  # Initialize dice to avoid NameError
-        
-        self.render_mode = render_mode
-        self.render_mode = render_mode
     def step(self, action):
         # Roll dice and store in self.dice
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
