@@ -34,8 +34,11 @@ def compute_coverage_reward(board):
     return distinct_points
 
 def compute_head_reward(board, head_index):
-    # No penalty for head occupancy
-    return 0
+    head_count = board[head_index]
+    penalty = 0
+    if head_count > 1:
+        penalty = -0.01 * (head_count - 1)
+    return penalty
 
 def compute_progress(game, current_player):
     """
