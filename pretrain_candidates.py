@@ -67,37 +67,37 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
             dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
             # Get valid moves from the game logic
             valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
-                if len(valid_moves) == 0:
-                    action = (0, 0)  # Skip turn if no valid moves
-                else:
-                    # Use agent.act to select an action with exploration (training=True)
-                    action = agent.act(state, valid_moves=valid_moves, env=agent.env,
-                                       dice=dice, current_player=agent.env.unwrapped.current_player,
-                                       training=True)
-                # Step the environment with the chosen action
-                next_state, env_reward, done, truncated, _ = agent.env.step(action)
-                # Get new progress metrics
-                new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
-                                                               agent.env.unwrapped.current_player)
-                # Compute incremental progress:
-                # A reduction in remaining distance (i.e. progress) yields positive reward.
-                progress_reward = progress_weight * (prev_distance - new_distance)
-                # Reward any additional checkers borne off since previous step.
-                borne_off_increment = new_borne_off - prev_borne_off
-                borne_reward = borne_off_weight * borne_off_increment
+            if len(valid_moves) == 0:
+                action = (0, 0)  # Skip turn if no valid moves
+            else:
+                # Use agent.act to select an action with exploration (training=True)
+                action = agent.act(state, valid_moves=valid_moves, env=agent.env,
+                                   dice=dice, current_player=agent.env.unwrapped.current_player,
+                                   training=True)
+            # Step the environment with the chosen action
+            next_state, env_reward, done, truncated, _ = agent.env.step(action)
+            # Get new progress metrics
+            new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
+                                                           agent.env.unwrapped.current_player)
+            # Compute incremental progress:
+            # A reduction in remaining distance (i.e. progress) yields positive reward.
+            progress_reward = progress_weight * (prev_distance - new_distance)
+            # Reward any additional checkers borne off since previous step.
+            borne_off_increment = new_borne_off - prev_borne_off
+            borne_reward = borne_off_weight * borne_off_increment
 
-                # Compute the final shaped reward by blending the environment reward and the incremental rewards.
-                shaped_reward = env_reward + progress_reward + borne_reward
+            # Compute the final shaped reward by blending the environment reward and the incremental rewards.
+            shaped_reward = env_reward + progress_reward + borne_reward
 
-                # Update progress metrics for the next step
-                prev_distance, prev_borne_off = new_distance, new_borne_off
-                # Store the experience with shaped reward
-                agent.remember(state, action, shaped_reward, next_state, done)
-                total_reward += shaped_reward
-                state = next_state
-                # Train the agent if enough samples have been collected
-                if len(agent.memory) >= agent.batch_size:
-                    agent.replay()
+            # Update progress metrics for the next step
+            prev_distance, prev_borne_off = new_distance, new_borne_off
+            # Store the experience with shaped reward
+            agent.remember(state, action, shaped_reward, next_state, done)
+            total_reward += shaped_reward
+            state = next_state
+            # Train the agent if enough samples have been collected
+            if len(agent.memory) >= agent.batch_size:
+                agent.replay()
             print(f"Candidate {i+1}, Episode {ep+1}/{episodes}: Total Reward = {total_reward:.2f}")
         
         # Optionally, close the environment when done training this candidate.
