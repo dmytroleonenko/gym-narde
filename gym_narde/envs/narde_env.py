@@ -139,18 +139,6 @@ class NardeEnv(gym.Env):
         
         # Return observation and info dict according to new API
         self.dice = [0, 0]  # Initialize to default
-            
-        self.game = Narde()
-        while True:
-            white_roll = np.random.randint(1, 7)
-            black_roll = np.random.randint(1, 7)
-            if white_roll != black_roll:
-                break
-        # The winning player (strictly higher roll) becomes White; otherwise Black.
-        self.current_player = 1 if white_roll > black_roll else -1
-        
-        # Return observation and info dict according to new API
-        self.dice = [0, 0]  # Initialize to default
         return self._get_obs(), {}
 
     def render(self):
