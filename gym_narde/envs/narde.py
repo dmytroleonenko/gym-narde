@@ -57,10 +57,18 @@ class Narde:
                     if board[new_pos] >= 0:  # Can only land on empty or own point
                         moves.append((pos, new_pos))
                 elif new_pos < 0:
-                    # Check if bearing off is possible given White's home is positions 0–5
-                    if np.sum(np.maximum(board[:6], 0)) == 15:  # All White's checkers are in positions 0...5
-                        if die >= pos + 1:
-                            moves.append((pos, 'off'))
+                    # Distinguish White vs. Black for bearing off:
+                    if current_player == 1:
+                        # White: must have all 15 in 0..5, check board[:6] for +15 total
+                        if np.sum(np.maximum(board[:6], 0)) == 15:
+                            if die >= pos + 1:  # distance from pos to off
+                                moves.append((pos, 'off'))
+                    else:
+                        # Black: must have all 15 in 18..23, check board[18:] for -15 total
+                        if np.sum(np.minimum(board[18:], 0)) == -15:
+                            # distance from pos to off is (24 - pos)
+                            if die >= (24 - pos):
+                                moves.append((pos, 'off'))
         # --- NEW: Filter moves based on block rule, but allow escape if already in violation ---
         filtered_moves = []
         for move in moves:
