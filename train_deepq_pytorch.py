@@ -946,6 +946,9 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             no_progress_penalty = -0.01 if prev_distance <= new_distance else 0.0
             disadvantage_penalty = -0.1 if env.unwrapped.game.borne_off_black > env.unwrapped.game.borne_off_white else 0.0
 
+            # Initialize reward
+            reward = 0.0
+
             # Final shaped reward:
             reward += no_progress_penalty + disadvantage_penalty
             reward = env_reward + progress_reward + borne_reward + coverage_reward + block_reward + head_bonus
