@@ -14,6 +14,7 @@ class NardeEnv(gym.Env):
         self.current_player = 1  # Always white perspective
         
         self.render_mode = render_mode
+        self.consecutive_skip_turns = 0  # Track how many consecutive turns have been skipped
 
         # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
         # Define observation space components
@@ -58,7 +59,13 @@ class NardeEnv(gym.Env):
             done, reward = self._check_game_ended()
             if not done:
                 self.current_player *= -1
-            # New API: return observation, reward, terminated, truncated, info
+            
+            # Increase skip-turn counter
+            self.consecutive_skip_turns += 1
+            if self.consecutive_skip_turns >= 2:
+                print("[DEBUG] Two consecutive skip-turns detected!")
+                print("Board state:", self.game.board)
+                print("Dice roll:", self.dice)
             return self._get_obs(), reward, done, False, {}
 
         elif len(valid_moves) == 1:
@@ -83,6 +90,9 @@ class NardeEnv(gym.Env):
                 move2 = (from_pos2, 'off')
             else:
                 move2 = (from_pos2, to_pos2)
+            # Valid moves available -> reset the skip-turn counter
+            self.consecutive_skip_turns = 0
+
             if move1 in valid_moves:
                 self.game.execute_rotated_move(move1, self.current_player)
                 # Execute the second move if it's valid
