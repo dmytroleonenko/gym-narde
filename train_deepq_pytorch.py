@@ -418,7 +418,7 @@ class DQNAgent:
         
         # Optimizer
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.scaler = torch.cuda.amp.GradScaler()  # For mixed precision training
+        self.scaler = None if self.device.type == "mps" else torch.cuda.amp.GradScaler()  # Conditional AMP
         self.loss_fn = nn.MSELoss(reduction='none')  # Use 'none' to apply importance sampling weights
         
         # Initialize TD error statistics
@@ -734,11 +734,16 @@ class DQNAgent:
             loss = loss_move1 + loss_move2
             
             # Backward pass with gradient clipping
-            self.scaler.scale(loss).backward()  # Use scaler for mixed precision
-            # Clip gradients to stabilize training
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
-            self.scaler.step(self.optimizer)  # Use scaler for mixed precision
-            self.scaler.update()  # Update the scaler
+            if self.scaler:
+                self.scaler.scale(loss).backward()  # Use scaler for mixed precision
+                # Clip gradients to stabilize training
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
+                self.scaler.step(self.optimizer)  # Use scaler for mixed precision
+                self.scaler.update()  # Update the scaler
+            else:
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
+                self.optimizer.step()
             
         else:
             # Original flat approach for backward compatibility
