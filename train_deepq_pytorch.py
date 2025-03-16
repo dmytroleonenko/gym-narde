@@ -974,7 +974,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                 loss_str = f"Loss: {loss:.8f}" if loss is not None else ""
                 
                 # Create the dice string
-                dice_str = f"Dice: {dice}"
+                dice_str = f"Dice: {env.dice}"
                 
                 # Create the move string
                 move_str = ""
@@ -1060,12 +1060,12 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                     
                     print(f"{player_name} checkers at positions: {player_checkers}")
                     print(f"Opponent checkers at positions: {opponent_checkers}")
-                    print(f"Dice: {dice}")
+                    print(f"Dice: {env.dice}")
                     
                     # Check if possible moves would violate the block rule
                     all_moves = []
                     for pos in player_checkers:
-                        for die in dice:
+                        for die in env.dice:
                             new_pos = pos - die  # Movement is counter-clockwise (decreasing index)
                             if 0 <= new_pos < 24:
                                 all_moves.append((pos, new_pos))
@@ -1082,7 +1082,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                     if head_pos in player_checkers:
                         is_first_turn = env.unwrapped.game.first_turn_white if current_player == 1 else env.unwrapped.game.first_turn_black
                         if is_first_turn:
-                            if sorted(dice) in [[3,3], [4,4], [6,6]]:
+                            if sorted(env.dice) in [[3,3], [4,4], [6,6]]:
                                 print("First turn with doubles 3, 4, or 6 - can move 2 checkers from head")
                             else:
                                 print("First turn - can move only 1 checker from head")
