@@ -53,7 +53,10 @@ def mutate_model(model, std=MUTATION_STD):
     return child
 
 def main():
-    # Initialize base model
+    # Create a dedicated output directory for saving models
+    save_dir = os.path.join(os.getcwd(), "evolved_models")
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
     base_model = DecomposedDQN(state_size=28, move_space_size=576)
     base_model.to(torch.device("cpu"))
     # For evolution, we don't need an optimizer since we use random mutations
@@ -71,13 +74,13 @@ def main():
         avg_fitness = np.mean(fitnesses)
         best_idx = np.argmax(fitnesses)
         gen_best = fitnesses[best_idx]
-        print(f"Generation {gen+1} -- Avg fitness: {avg_fitness:.3f}, Best fitness: {gen_best:.3f}")
+        print(f"Generation {gen+1} -- Avg fitness: {avg_fitness:.3f}, Best fitness: {gen_best:.3f}, Std Dev: {np.std(fitnesses):.3f}")
 
         # Save best model of current generation if it outperforms previous ones
         if gen_best > best_fitness:
             best_fitness = gen_best
             best_model = copy.deepcopy(population[best_idx])
-            torch.save(best_model.state_dict(), f"evolved_model_gen{gen+1}.pt")
+            torch.save(best_model.state_dict(), os.path.join(save_dir, f"evolved_model_gen{gen+1}.pt"))
             print(f"  New best model saved with fitness {best_fitness:.3f}")
         
         # Select elites
@@ -96,9 +99,9 @@ def main():
 
     # Save the final best model
     if best_model is not None:
-        model_path = os.path.join(os.getcwd(), "evolved_model_final.pt")
-        torch.save(best_model.state_dict(), model_path)
-        print(f"Final best model saved to {model_path}")
+        final_model_path = os.path.join(save_dir, "evolved_model_final.pt")
+        torch.save(best_model.state_dict(), final_model_path)
+        print(f"Final best model saved to {final_model_path}")
 
 if __name__ == "__main__":
     import argparse
