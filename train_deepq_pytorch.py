@@ -200,6 +200,10 @@ class DecomposedDQN(nn.Module):
         # Second move head - takes state and first move as input
         self.move2_head = nn.Linear(256 + move_space_size, move_space_size)
         
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
     def forward(self, x, selected_move1=None):
         """
         Forward pass through the network
