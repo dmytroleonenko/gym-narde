@@ -101,4 +101,21 @@ def main():
         print(f"Final best model saved to {model_path}")
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='Train an agent using evolutionary strategies for Narde')
+    parser.add_argument('--population-size', type=int, default=50, help="Population size")
+    parser.add_argument('--generations', type=int, default=100, help="Number of generations")
+    parser.add_argument('--episodes-per-individual', type=int, default=3, help="Episodes per individual evaluation")
+    parser.add_argument('--mutation-std', type=float, default=0.02, help="Standard deviation for mutation noise")
+    parser.add_argument('--elite-fraction', type=float, default=0.2, help="Fraction of top-performing individuals to select as elites")
+    
+    args = parser.parse_args()
+    
+    # Override hyperparameters with CLI parameters
+    POPULATION_SIZE = args.population_size
+    NUM_GENERATIONS = args.generations
+    NUM_EPISODES_PER_INDIVIDUAL = args.episodes_per_individual
+    MUTATION_STD = args.mutation_std
+    ELITE_FRACTION = args.elite_fraction
+    
     main()
