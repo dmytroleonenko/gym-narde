@@ -823,7 +823,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             pass
     
     # Create agent
-    state_size = 24  # Board positions
+    state_size = 28  # 24 board positions + 2 dice + 2 borne_off values
     action_size = 576 * 576  # All possible move combinations (24*24 for move1 * 24*24 for move2)
     agent = DQNAgent(state_size, action_size, 
                      use_decomposed_network=use_decomposed_network,
