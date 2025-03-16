@@ -45,28 +45,34 @@ class Narde:
 
     def get_valid_moves(self, roll, current_player=1):
         roll = sorted(roll, reverse=True)
-        # Get board in current player's perspective
         board = self.board if current_player == 1 else rotate_board(self.board)
         moves = []
         direction = -1  # Always move counter-clockwise
 
+        # Calculate actual checkers in home board (exclude opponent's pieces)
+        home_indices = range(6) if current_player == 1 else range(6,12)
+        in_home = sum(board[pos] > 0 if current_player == 1 else board[pos] < 0 
+                for pos in home_indices)
+    
         for die in roll:
             for pos in range(24):
+                # Check piece ownership
                 if (current_player == 1 and board[pos] <= 0) or (current_player == -1 and board[pos] >= 0):
-                    continue  # Only current player's checkers
+                    continue
 
+                # Normal moves
                 new_pos = pos + direction * die
                 if 0 <= new_pos < 24:
-                    if (current_player == 1 and board[new_pos] >= 0) or (current_player == -1 and board[new_pos] <= 0):
+                    if (current_player == 1 and board[new_pos] >= -1) or (current_player == -1 and board[new_pos] <= 1):
                         moves.append((pos, new_pos))
-                elif new_pos < 0:
-                    # Check bearing off using perspective-correct home board
-                    home_board = board[:6] if current_player == 1 else board[6:12]
-                    total_checkers = sum(abs(home_board))  # Using abs() for Black perspective
-                    
-                    if total_checkers == 15:
-                        if die >= pos + 1:  # distance from pos to off
-                            moves.append((pos, 'off'))
+                # Bearing off
+                elif new_pos < 0 and in_home == 15:
+                    exact_distance = pos + 1
+                    if die == exact_distance or (die > exact_distance and not any(
+                        board[p] > 0 if current_player == 1 else board[p] < 0
+                        for p in range(pos)
+                    )):
+                        moves.append((pos, 'off'))
         # --- NEW: Filter moves based on block rule, but allow escape if already in violation ---
         filtered_moves = []
         for move in moves:
