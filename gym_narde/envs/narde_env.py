@@ -1,160 +1,170 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+import random
 
-from gym_narde.envs.narde import Narde
+from gym_narde.envs.narde import Narde, rotate_board
 
 class NardeEnv(gym.Env):
+    """Narde environment implementing gym.Env."""
+    
     metadata = {"render_modes": ["human"], "render_fps": 4}
     
     def __init__(self, render_mode=None, max_steps=500):
-        super(NardeEnv, self).__init__()
-
-        self.game = Narde()
-        self.current_player = 1  # Initialized properly in reset()
+        """Initialize the Narde environment.
         
-        self.render_mode = render_mode
+        Args:
+            render_mode (str, optional): The render mode to use. Defaults to None.
+            max_steps (int, optional): Maximum number of steps before episode ends. Defaults to 500.
+        """
+        super().__init__()
+        
+        # Initialize game
+        self.game = Narde()
+        self.current_player = 1  # White starts
         self.consecutive_skip_turns = 0
         self.step_count = 0
-        self.max_steps = max_steps  # Now configurable
-
-        # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
-        # Define observation space components
-        board_low = np.full(24, -15, dtype=np.float32)
-        dice_low = np.zeros(2, dtype=np.float32)
-        borne_off_low = np.zeros(2, dtype=np.float32)
-        full_low = np.concatenate([board_low, dice_low, borne_off_low])
+        self.max_steps = max_steps
+        self.render_mode = render_mode
         
-        board_high = np.full(24, 15, dtype=np.float32)
-        dice_high = np.full(2, 6, dtype=np.float32)
-        borne_off_high = np.full(2, 15, dtype=np.float32)
-        full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
+        # Action space: (move_index, move_type)
+        # move_index: 0-575 (24*24 possible from-to combinations)
+        # move_type: 0 for regular move, 1 for bearing off
+        self.action_space = spaces.Tuple((
+            spaces.Discrete(576),  # 24*24 possible moves
+            spaces.Discrete(2)     # 0: regular move, 1: bearing off
+        ))
         
-        self.observation_space = spaces.Box(low=full_low, high=full_high, shape=(28,), dtype=np.float32)
-        self.action_space = spaces.Tuple((spaces.Discrete(576), spaces.Discrete(576)))
+        # Observation space: board (24) + dice (2) + borne_off (2) = 28 features
+        self.observation_space = spaces.Box(
+            low=np.array([-15] * 24 + [0] * 2 + [0] * 2, dtype=np.float32),
+            high=np.array([15] * 24 + [6] * 2 + [15] * 2, dtype=np.float32)
+        )
+        
+        # Initialize dice
+        self.dice = [random.randint(1, 6), random.randint(1, 6)]
     
-    def _get_obs(self):
-        # Get board in current player's perspective
-        board = self.game.get_perspective_board(self.current_player).astype(np.float32)
-        
-        # dice values (2 values)
-        dice_array = np.array(self.dice, dtype=np.float32)
-        
-        # Borme_off counts (2 values)
-        if self.current_player == 1:
-            borne_off = np.array([self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
-        else:
-            # For Black, invert the counts
-            borne_off = np.array([self.game.borne_off_black, self.game.borne_off_white], dtype=np.float32)
-        
-        return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
-    def step(self, action):
-        self.step_count += 1  # Increment step count for each step
-        # Re-roll dice exactly once at the start of each step
-        self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-        # Use the existing dice (set during reset or prior steps)
-        dice = self.dice
-        
-        valid_moves = self.game.get_valid_moves(dice, self.current_player)
-
-        if len(valid_moves) == 0:
-            done, reward = self._check_game_ended()
-            # Save the current player before flipping (so the debug reflects the mover with no moves)
-            current_player_no_move = self.current_player
-            # Increase skip-turn counter
-            self.consecutive_skip_turns += 1
-            if self.consecutive_skip_turns >= 2:
-                print("[DEBUG] Two consecutive skip-turns detected!")
-                print("Board state:", self.game.board)
-                print("Dice roll:", self.dice)
-                print("Current player:", "White" if current_player_no_move == 1 else "Black")
-                print("Borne off - White:", self.game.borne_off_white, "Black:", self.game.borne_off_black)
-                print("First turn - White:", self.game.first_turn_white, "Black:", self.game.first_turn_black)
-                print("Valid moves:", valid_moves)
-                print("Potential reasons for no valid moves:")
-                if current_player_no_move == 1:
-                    if self.game.first_turn_white and not any(die in [3, 4, 6] for die in self.dice):
-                        print("- First turn for White without doubles 3, 4, or 6.")
-                    if all(pos >= 0 for pos in self.game.board[:6]):
-                        print("- All White checkers are in home positions, but no valid bearing off.")
-                else:
-                    if self.game.first_turn_black and not any(die in [3, 4, 6] for die in self.dice):
-                        print("- First turn for Black without doubles 3, 4, or 6.")
-                    if all(pos <= 0 for pos in self.game.board[18:]):
-                        print("- All Black checkers are in home positions, but no valid bearing off.")
-            if not done:
-                self.current_player *= -1
-            return self._get_obs(), reward, done, False, {}
-
-        elif len(valid_moves) == 1:
-            # Only one legal move—that is, using the higher die.
-            self.game.execute_rotated_move(valid_moves[0], self.current_player)
-        else:
-            move1_code, move2_code = action
-            from_pos1 = move1_code // 24
-            to_pos1 = move1_code % 24
-            
-            # Check if this is a bearing off move (to_pos == 0 and from_pos in 0-5)
-            if to_pos1 == 0 and 0 <= from_pos1 <= 5:
-                move1 = (from_pos1, 'off')
-            else:
-                move1 = (from_pos1, to_pos1)
-            
-            from_pos2 = move2_code // 24
-            to_pos2 = move2_code % 24
-            
-            # Check if second move is a bearing off move
-            if to_pos2 == 0 and 0 <= from_pos2 <= 5:
-                move2 = (from_pos2, 'off')
-            else:
-                move2 = (from_pos2, to_pos2)
-            # Valid moves available -> reset the skip-turn counter
-            self.consecutive_skip_turns = 0
-
-            if move1 in valid_moves:
-                self.game.execute_rotated_move(move1, self.current_player)
-                # Execute the second move if it's valid
-                if move2 in valid_moves:
-                    self.game.execute_rotated_move(move2, self.current_player)
-
-        # Check if game ended and compute reward
-        done, reward = self._check_game_ended()
-
-        # Switch players if game continues
-        if not done:
-            self.current_player *= -1
-        
-        # Add step limit check
-        if self.step_count >= self.max_steps:
-            done = True
-            reward = -0.1  # Penalize for exceeding step limit
-            
-        # New API: return observation, reward, terminated, truncated, info
-        return self._get_obs(), reward, done, False, {}
-
     def reset(self, *, seed=None, options=None):
-        # Initialize RNG if seed is provided
-        if seed is not None:
-            np.random.seed(seed)
-            
+        """Reset the environment to initial state.
+        
+        Args:
+            seed (int, optional): Random seed. Defaults to None.
+            options (dict, optional): Additional options. Defaults to None.
+        
+        Returns:
+            numpy.ndarray: Initial observation
+        """
+        super().reset(seed=seed)
+        
         # Reset game state
         self.game = Narde()
-        
-        # Reset episode-specific counters
-        self.step_count = 0
+        self.current_player = 1
         self.consecutive_skip_turns = 0
+        self.step_count = 0
+        self.dice = [random.randint(1, 6), random.randint(1, 6)]
         
-        # Roll for starting player
-        while True:
-            white_roll = np.random.randint(1, 7)
-            black_roll = np.random.randint(1, 7)
-            if white_roll != black_roll:
-                break
-                
-        self.current_player = 1 if white_roll > black_roll else -1
-        self.dice = [0, 0]  # Initialize to default
+        return self._get_obs()
+    
+    def _get_obs(self):
+        """Get the current observation."""
+        board = self.game.get_perspective_board(self.current_player)
+        dice = np.array(self.dice, dtype=np.float32)
+        borne_off = np.array([
+            self.game.borne_off_white if self.current_player == 1 else self.game.borne_off_black,
+            self.game.borne_off_black if self.current_player == 1 else self.game.borne_off_white
+        ], dtype=np.float32)
+        return np.concatenate([board, dice, borne_off])
+    
+    def step(self, action):
+        """Execute one step in the environment.
         
-        return self._get_obs(), {}
+        Args:
+            action: Tuple (move_index, move_type) or integer action code
+        
+        Returns:
+            tuple: (observation, reward, done, info)
+        """
+        # Convert action to move
+        move = self.action_to_move(action)
+        
+        # Get valid moves
+        valid_moves = self.game.get_valid_moves(self.dice, self.current_player)
+        print("Valid moves:", valid_moves)
+        
+        # Check if move is valid
+        if move not in valid_moves:
+            print(f"First move {move} not in valid moves: {valid_moves}")
+            self.consecutive_skip_turns += 1
+            reward = -1.0
+        else:
+            # Execute move
+            print(f"Executing first move: {move}")
+            self.game.execute_rotated_move(move, self.current_player)
+            self.consecutive_skip_turns = 0
+            reward = 0.0
+        
+        # Increment step counter
+        self.step_count += 1
+        
+        # Check if game is over
+        done = (self.game.borne_off_white >= 15 or 
+                self.game.borne_off_black >= 15 or 
+                self.consecutive_skip_turns >= 4 or
+                self.step_count >= self.max_steps)
+        
+        # Update reward for game over
+        if done:
+            if self.game.borne_off_white >= 15 and self.current_player == 1:
+                reward = 1.0
+            elif self.game.borne_off_black >= 15 and self.current_player == -1:
+                reward = 1.0
+            elif self.consecutive_skip_turns >= 4:
+                reward = -1.0
+            elif self.step_count >= self.max_steps:
+                reward = -1.0
+        
+        # Switch player and roll dice for next turn
+        if not done:
+            self.current_player *= -1
+            self.dice = [random.randint(1, 6), random.randint(1, 6)]
+        
+        return self._get_obs(), reward, done, {}
+    
+    def action_to_move(self, action_code):
+        """Convert an action code to a move tuple.
+        
+        Args:
+            action_code: Either an integer representing the action or a tuple (move_index, move_type)
+                       where move_type is 0 for regular move, 1 for bearing off
+        
+        Returns:
+            tuple: A tuple of (from_pos, to_pos) representing the move
+        """
+        # Handle both integer and tuple action codes
+        if isinstance(action_code, tuple):
+            move_index, move_type = action_code
+        else:
+            move_index = action_code
+            move_type = 0
+        
+        # Convert action code to positions
+        from_pos = move_index // 24
+        to_pos = move_index % 24
+        
+        # For bearing off moves
+        if move_type == 1:
+            to_pos = 'off'
+        
+        # For Black's perspective, we need to rotate positions
+        if self.current_player == -1:
+            # Convert from Black's perspective to White's perspective
+            if to_pos == 'off':
+                from_pos = (from_pos + 12) % 24
+            else:
+                from_pos = (from_pos + 12) % 24
+                to_pos = (to_pos + 12) % 24
+        
+        return (from_pos, to_pos)
 
     def render(self):
         if self.render_mode == "human":
@@ -182,3 +192,27 @@ class NardeEnv(gym.Env):
 
             return True, reward
         return False, 0
+
+    def rotate_action(self, action_code):
+        """Rotate action code for Black's perspective.
+        
+        Args:
+            action_code (int): An integer representing the action
+            
+        Returns:
+            int: The rotated action code
+        """
+        # Convert action code to positions
+        from_pos = action_code // 24
+        to_pos = action_code % 24
+        
+        # Don't rotate bearing off moves (to_pos == 0)
+        if to_pos == 0:
+            # Only rotate from_pos
+            rotated_from = (from_pos + 12) % 24
+            return rotated_from * 24
+        
+        # Rotate both positions
+        rotated_from = (from_pos + 12) % 24
+        rotated_to = (to_pos + 12) % 24
+        return rotated_from * 24 + rotated_to
