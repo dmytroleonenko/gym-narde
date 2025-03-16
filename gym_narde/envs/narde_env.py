@@ -46,11 +46,9 @@ class NardeEnv(gym.Env):
         
         return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
     def step(self, action):
-        # Roll dice and store in self.dice
-        dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-        self.dice = dice  # Store dice for observation computation
-        # Roll two dice at the beginning of the turn
-        dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        # Roll dice exactly once per turn and store them in self.dice
+        self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        dice = self.dice
         
         valid_moves = self.game.get_valid_moves(dice, self.current_player)
 

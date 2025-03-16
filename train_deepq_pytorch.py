@@ -905,9 +905,8 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
         total_black_off = 0
         
         for step in range(max_steps):
-            # Roll dice
-            dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-            valid_moves = env.unwrapped.game.get_valid_moves(dice, env.unwrapped.current_player)
+            # Use dice from the environment
+            valid_moves = env.unwrapped.game.get_valid_moves(env.dice, env.unwrapped.current_player)
             
             # --- New Reward Shaping Start ---
             # For both cases (valid or non-valid moves), we compute shaping rewards.
@@ -916,7 +915,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                 action = (0, 0)
             else:
                 action = agent.act(state, valid_moves=valid_moves, env=env,
-                                   dice=dice, current_player=env.unwrapped.current_player,
+                                   dice=env.dice, current_player=env.unwrapped.current_player,
                                    training=True)
             # Capture OLD board and progress before stepping:
             old_board = env.unwrapped.game.get_perspective_board(env.unwrapped.current_player)
