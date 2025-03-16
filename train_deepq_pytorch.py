@@ -1131,6 +1131,8 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             previous_10_avg = np.mean(loss_values[-20:-10])
             improvement_10 = ((previous_10_avg - current_10_avg) / previous_10_avg) * 100
             improvement_10_str = f", Loss improvement (last 10): {improvement_10:+.2f}%"
+        else:
+            improvement_10_str = ", Loss improvement (last 10): N/A"
 
         improvement_50_str = ""
         if len(loss_values) >= 100:
@@ -1138,6 +1140,8 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             previous_50_avg = np.mean(loss_values[-100:-50])
             improvement_50 = ((previous_50_avg - current_50_avg) / previous_50_avg) * 100
             improvement_50_str = f", Loss improvement (last 50): {improvement_50:+.2f}%"
+        else:
+            improvement_50_str = ", Loss improvement (last 50): N/A"
         print(f"Episode: {e+1}/{episodes}, Score: {total_reward:.2f}, Steps: {step+1}, "
               f"Epsilon: {agent.epsilon:.2f}, Loss: {episode_loss if episode_loss else 'N/A'}, "
               f"TD Error Mean: {agent.last_td_error_mean:.4f}, TD Error Max: {agent.last_td_error_max:.4f}"
