@@ -395,7 +395,7 @@ class DQNAgent:
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 1e-4
-        self.batch_size = 64
+        self.batch_size = 128  # Increased batch size
         self.use_decomposed_network = use_decomposed_network
         self.move_space_size = 576  # 24*24 possible moves
         
@@ -418,14 +418,15 @@ class DQNAgent:
         
         # Optimizer
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.scaler = torch.cuda.amp.GradScaler()  # For mixed precision training
         self.loss_fn = nn.MSELoss(reduction='none')  # Use 'none' to apply importance sampling weights
         
         # Initialize TD error statistics
         self.last_td_error_mean = 0.0
         self.last_td_error_max = 0.0
 
-        # Update target network every 10 steps
-        self.update_target_freq = 10
+        # Update target network every 5 steps for more frequent training
+        self.update_target_freq = 5
         self.train_step = 0
 
     def update_target_model(self):
@@ -733,10 +734,11 @@ class DQNAgent:
             loss = loss_move1 + loss_move2
             
             # Backward pass with gradient clipping
-            loss.backward()
+            self.scaler.scale(loss).backward()  # Use scaler for mixed precision
             # Clip gradients to stabilize training
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
-            self.optimizer.step()
+            self.scaler.step(self.optimizer)  # Use scaler for mixed precision
+            self.scaler.update()  # Update the scaler
             
         else:
             # Original flat approach for backward compatibility
