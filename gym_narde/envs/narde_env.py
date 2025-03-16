@@ -27,6 +27,8 @@ class NardeEnv(gym.Env):
         borne_off_high = np.full(2, 15, dtype=np.float32)
         full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
         
+        self.observation_space = spaces.Box(low=full_low, high=full_high, shape=(28,), dtype=np.float32)
+        self.action_space = spaces.Tuple((spaces.Discrete(576), spaces.Discrete(576)))
     
     def _get_obs(self):
         # Get board in current player's perspective
