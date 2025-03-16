@@ -7,16 +7,16 @@ from gym_narde.envs.narde import Narde
 class NardeEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 4}
     
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, max_steps=500):
         super(NardeEnv, self).__init__()
 
         self.game = Narde()
-        self.current_player = 1  # Always white perspective
+        self.current_player = 1  # Initialized properly in reset()
         
         self.render_mode = render_mode
-        self.consecutive_skip_turns = 0  # Track how many consecutive turns have been skipped
+        self.consecutive_skip_turns = 0
         self.step_count = 0
-        self.max_steps = 500  # Define maximum steps per episode
+        self.max_steps = max_steps  # Now configurable
 
         # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
         # Define observation space components
@@ -137,17 +137,23 @@ class NardeEnv(gym.Env):
         if seed is not None:
             np.random.seed(seed)
             
+        # Reset game state
         self.game = Narde()
+        
+        # Reset episode-specific counters
+        self.step_count = 0
+        self.consecutive_skip_turns = 0
+        
+        # Roll for starting player
         while True:
             white_roll = np.random.randint(1, 7)
             black_roll = np.random.randint(1, 7)
             if white_roll != black_roll:
                 break
-        # The winning player (strictly higher roll) becomes White; otherwise Black.
+                
         self.current_player = 1 if white_roll > black_roll else -1
-        
-        # Return observation and info dict according to new API
         self.dice = [0, 0]  # Initialize to default
+        
         return self._get_obs(), {}
 
     def render(self):
