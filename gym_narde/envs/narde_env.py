@@ -65,6 +65,10 @@ class NardeEnv(gym.Env):
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
+    def step(self, action):
+        # Roll two dice at the beginning of the turn
+        dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        
         valid_moves = self.game.get_valid_moves(dice, self.current_player)
 
         if len(valid_moves) == 0:
