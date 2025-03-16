@@ -1124,10 +1124,24 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
         episode_rewards.append(total_reward)
         episode_lengths.append(step + 1)
         
-        # Print detailed episode statistics
+        # Compute and log loss improvement metrics if available
+        improvement_10_str = ""
+        if len(loss_values) >= 20:
+            current_10_avg = np.mean(loss_values[-10:])
+            previous_10_avg = np.mean(loss_values[-20:-10])
+            improvement_10 = ((previous_10_avg - current_10_avg) / previous_10_avg) * 100
+            improvement_10_str = f", Loss improvement (last 10): {improvement_10:+.2f}%"
+
+        improvement_50_str = ""
+        if len(loss_values) >= 100:
+            current_50_avg = np.mean(loss_values[-50:])
+            previous_50_avg = np.mean(loss_values[-100:-50])
+            improvement_50 = ((previous_50_avg - current_50_avg) / previous_50_avg) * 100
+            improvement_50_str = f", Loss improvement (last 50): {improvement_50:+.2f}%"
         print(f"Episode: {e+1}/{episodes}, Score: {total_reward:.2f}, Steps: {step+1}, "
               f"Epsilon: {agent.epsilon:.2f}, Loss: {episode_loss if episode_loss else 'N/A'}, "
-              f"TD Error Mean: {agent.last_td_error_mean:.4f}, TD Error Max: {agent.last_td_error_max:.4f}")
+              f"TD Error Mean: {agent.last_td_error_mean:.4f}, TD Error Max: {agent.last_td_error_max:.4f}"
+              f"{improvement_10_str}{improvement_50_str}")
         
         # In verbose or log modes, include final board state
         if log or (e+1) % 10 == 0:
