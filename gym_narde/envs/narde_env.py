@@ -33,10 +33,27 @@ class NardeEnv(gym.Env):
             shape=(28,),
             dtype=np.float32
         )
+        self.dice = [0, 0]  # Initialize to default
         self.action_space = spaces.Tuple((
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
         ))
+    
+    def _get_obs(self):
+        # Get board in current player's perspective
+        board = self.game.get_perspective_board(self.current_player).astype(np.float32)
+        
+        # Convert dice to array
+        dice_array = np.array(self.dice, dtype=np.float32)
+        
+        # borne_off counts (current player's first)
+        if self.current_player == 1:
+            borne_off = np.array([self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
+        else:
+            # for Black, invert the borne_off counts
+            borne_off = np.array([self.game.borne_off_black, self.game.borne_off_white], dtype=np.float32)
+        
+        return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
         self.render_mode = render_mode
         self.dice = [0, 0] # Initialize dice to avoid NameError
         
@@ -64,9 +81,12 @@ class NardeEnv(gym.Env):
 
         self.render_mode = render_mode
         # Roll two dice at the beginning of the turn
-        dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        self.dice = [0, 0]  # Initialize dice to avoid NameError
         
     def step(self, action):
+        # Roll dice and store in self.dice
+        dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        self.dice = dice
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
@@ -159,6 +179,7 @@ class NardeEnv(gym.Env):
         self.current_player = 1 if white_roll > black_roll else -1
         
         # Return observation and info dict according to new API
+        self.dice = [0, 0]  # Initialize to default
         return self._get_obs(), {}
 
     def render(self):
