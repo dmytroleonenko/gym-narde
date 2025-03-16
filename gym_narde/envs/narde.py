@@ -57,7 +57,7 @@ class Narde:
 
     def get_valid_moves(self, roll, current_player=1):
         roll = sorted(roll, reverse=True)
-        board = self.board if current_player == 1 else rotate_board(self.board)
+        board = self.board  # Always use self.board (i.e., always in White's perspective)
         moves = []
         direction = -1  # Always move counter-clockwise
 
