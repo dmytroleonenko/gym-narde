@@ -907,7 +907,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                     reward += 0.1 * total_black_off
 
                 # Add reward based on dice usage (optional)
-                reward += 0.01 * sum(agent.state[24:26])  # Encourage using both dice
+                reward += 0.01 * sum(state[24:26])  # Encourage using both dice
             
             # Remember experience
             agent.remember(state, action, reward, next_state, done)
