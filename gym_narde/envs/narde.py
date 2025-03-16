@@ -29,27 +29,13 @@ class Narde:
         self.first_turn_black = True
 
     def get_perspective_board(self, current_player):
-        if current_player == 1:  # Always white perspective
-            return self.board.copy()
-        return rotate_board(self.board)
+        return self.board.copy()
 
     def execute_rotated_move(self, move, current_player):
-        if current_player != 1:
-            # For black player, need to rotate positions
-            from_pos, to_pos = move
-            # Handle "off" special case for bearing off
-            if to_pos == 'off':
-                # Don't rotate 'off' destination, but do rotate the source position correctly
-                rotated_move = ((from_pos + 12) % 24, 'off')
-            else:
-                # For normal moves, rotate both positions
-                rotated_move = ((from_pos + 12) % 24, (to_pos + 12) % 24)
-            self._execute_move(rotated_move)
-        else:
-            # For white player, use the move as is
-            self._execute_move(move)
-                
-        # After executing, mark first turn as done for the current player.
+        # Always execute the move as-is (board is kept in White's perspective).
+        self._execute_move(move)
+
+        # After executing, mark first turn as done.
         if current_player == 1:
             self.first_turn_white = False
         else:
