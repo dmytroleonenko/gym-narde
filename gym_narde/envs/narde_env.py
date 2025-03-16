@@ -16,29 +16,29 @@ class NardeEnv(gym.Env):
         self.render_mode = render_mode
 
         # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
+        # Define observation space components
+        board_low = np.full(24, -15, dtype=np.float32)
+        dice_low = np.zeros(2, dtype=np.float32)
+        borne_off_low = np.zeros(2, dtype=np.float32)
+        full_low = np.concatenate([board_low, dice_low, borne_off_low])
+        
+        board_high = np.full(24, 15, dtype=np.float32)
+        dice_high = np.full(2, 6, dtype=np.float32)
+        borne_off_high = np.full(2, 15, dtype=np.float32)
+        full_high = np.concatenate([board_high, dice_high, borne_off_high])
+        
         self.observation_space = spaces.Box(
             low=full_low,
-            high=np.concatenate([board_high, dice_high, borne_off_high]),
+            high=full_high,
             shape=(28,),
             dtype=np.float32
         )
-        self.dice = []  # Initialize as part of the state.
-
-    def _get_obs(self):
-        # 1. Get rotated board (24 values)
-        board = self.game.get_perspective_board(self.current_player)
-        
-        # 2. Add dice values (clipped to 0-6)
-        dice = np.array(self.dice, dtype=np.float32)[:2]  # Ensure length=2 (e.g., single die is [3,0])
-        
-        # 3. Borne-off counts (2 values)
-        if self.current_player == 1:
-            borne_off = np.array([self.game.borne_off_white, -self.game.borne_off_black], dtype=np.float32)
-        else:
-            # For Black's turn, invert borne_off counts (so agent sees its borne_off as positive)
-            borne_off = np.array([-self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
-        
-        return np.concatenate([board, dice, borne_off]).astype(np.float32)
+        self.action_space = spaces.Tuple((
+            spaces.Discrete(24 * 24),
+            spaces.Discrete(24 * 24)
+        ))
+        self.render_mode = render_mode
+        self.dice = []
         # Define observation space components
         board_low = np.full(24, -15, dtype=np.float32)
         dice_low = np.zeros(2, dtype=np.float32)
