@@ -46,6 +46,8 @@ class NardeEnv(gym.Env):
         
         return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
     def step(self, action):
+        # Re-roll dice exactly once at the start of each step
+        self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         # Use the existing dice (set during reset or prior steps)
         dice = self.dice
         
