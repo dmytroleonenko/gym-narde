@@ -85,35 +85,9 @@ class NardeEnv(gym.Env):
                 move2 = (from_pos2, to_pos2)
             if move1 in valid_moves:
                 self.game.execute_rotated_move(move1, self.current_player)
-                # Recalculate valid moves for the remaining die after move1 is executed.
-                # Try to determine which die was used for the first move
-                try:
-                    # Calculate the move distance
-                    if move1[1] == 'off':
-                        # Special case for bearing off
-                        # For bearing off, we need a die >= (point_position + 1)
-                        move_distance = move1[0] + 1
-                    else:
-                        move_distance = abs(move1[0] - move1[1])
-                    
-                    # Find matching die or closest die
-                    temp_dice = dice.copy()
-                    if move_distance in temp_dice:
-                        temp_dice.remove(move_distance)
-                    else:
-                        # If no exact match, remove the first die
-                        if temp_dice:
-                            temp_dice.pop(0)
-                    
-                    # Check if there are any remaining dice
-                    if temp_dice:
-                        # Get valid moves for the remaining dice
-                        new_valid_moves = self.game.get_valid_moves(temp_dice, self.current_player)
-                        if move2 in new_valid_moves:
-                            self.game.execute_rotated_move(move2, self.current_player)
-                except Exception as e:
-                    # If any exception occurs, just continue without executing the second move
-                    pass
+                # Execute the second move if it's valid
+                if move2 in valid_moves:
+                    self.game.execute_rotated_move(move2, self.current_player)
 
         # Check if game ended and compute reward
         done, reward = self._check_game_ended()
