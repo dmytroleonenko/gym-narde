@@ -35,11 +35,17 @@ class NardeEnv(gym.Env):
             spaces.Discrete(2)     # 0: regular move, 1: bearing off
         ))
         
-        # Observation space: board (24) + dice (2) + borne_off (2) = 28 features
-        self.observation_space = spaces.Box(
-            low=np.array([-15] * 24 + [0] * 2 + [0] * 2, dtype=np.float32),
-            high=np.array([15] * 24 + [6] * 2 + [15] * 2, dtype=np.float32)
-        )
+        # Simplified observation space:
+        # - Board state (24 positions, -15 to 15)
+        # - Dice values (2, 0-6)
+        # - Borne off counts (2, 0-15)
+        # - Current player (1, -1 or 1)
+        self.observation_space = spaces.Dict({
+            'board': spaces.Box(low=-15, high=15, shape=(24,), dtype=np.int32),
+            'dice': spaces.Box(low=0, high=6, shape=(2,), dtype=np.int32),
+            'borne_off': spaces.Box(low=0, high=15, shape=(2,), dtype=np.int32),
+            'current_player': spaces.Discrete(2)  # 0: Black, 1: White
+        })
         
         # Initialize dice
         self.dice = [random.randint(1, 6), random.randint(1, 6)]
@@ -67,13 +73,15 @@ class NardeEnv(gym.Env):
     
     def _get_obs(self):
         """Get the current observation."""
-        board = self.game.get_perspective_board(self.current_player)
-        dice = np.array(self.dice, dtype=np.float32)
-        borne_off = np.array([
-            self.game.borne_off_white if self.current_player == 1 else self.game.borne_off_black,
-            self.game.borne_off_black if self.current_player == 1 else self.game.borne_off_white
-        ], dtype=np.float32)
-        return np.concatenate([board, dice, borne_off])
+        return {
+            'board': self.game.board.copy(),
+            'dice': np.array(self.dice, dtype=np.int32),
+            'borne_off': np.array([
+                self.game.borne_off_white,
+                self.game.borne_off_black
+            ], dtype=np.int32),
+            'current_player': 0 if self.current_player == -1 else 1
+        }
     
     def step(self, action):
         """Execute one step in the environment.
