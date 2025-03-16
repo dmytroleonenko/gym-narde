@@ -34,11 +34,8 @@ def compute_coverage_reward(board):
     return distinct_points
 
 def compute_head_reward(board, head_index):
-    head_count = board[head_index]
-    penalty = 0
-    if head_count > 1:
-        penalty = -0.01 * (head_count - 1)
-    return penalty
+    # Disable the old penalty entirely:
+    return 0
 
 def compute_progress(game, current_player):
     """
@@ -107,8 +104,16 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
                     action = agent.act(state, valid_moves=valid_moves, env=agent.env,
                                        dice=dice, current_player=agent.env.unwrapped.current_player,
                                        training=True)
+                # Capture OLD board before stepping
+                old_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+                old_head_count = old_board[23]  # White's head is index 23 in perspective (adjust if needed)
+
                 # Step the environment with the chosen action
                 next_state, env_reward, done, truncated, _ = agent.env.step(action)
+                # Capture NEW board after stepping
+                new_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+                new_head_count = new_board[23]
+
                 # Get new progress metrics
                 new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
                                                                agent.env.unwrapped.current_player)
@@ -134,14 +139,18 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
                 head_index = 23
                 head_reward = compute_head_reward(current_board, head_index)
                 
-                # Define small weights for these signals.
+                # Reward each checker that actually left the head.
+                # If old_head_count = 15 and new_head_count = 13, that means 2 left => bonus = 0.05 * 2 = 0.1
+                head_reward = 0.0
+                if new_head_count < old_head_count:
+                    head_reward = 0.05 * (old_head_count - new_head_count)
                 coverage_weight = 0.0005
                 block_weight = 0.0001
                 head_weight = 1.0
                 
                 coverage_reward = coverage_weight * old_coverage
                 shaped_reward = env_reward + progress_reward + borne_reward\
-                                 + coverage_reward + block_weight * block_reward + head_weight * head_reward
+                                 + coverage_reward + block_weight * block_reward + head_reward
 
                 # Update progress metrics for the next step
                 prev_distance, prev_borne_off = new_distance, new_borne_off
