@@ -35,7 +35,7 @@ class Narde:
 
     def execute_rotated_move(self, move, current_player):
         # Always execute the move as-is (board is kept in White's perspective).
-        self._execute_move(move)
+        self._execute_move(move, current_player)
 
         # After executing, mark first turn as done.
         if current_player == 1:
