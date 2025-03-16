@@ -906,7 +906,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
         
         for step in range(max_steps):
             # Use dice from the environment
-            valid_moves = env.unwrapped.game.get_valid_moves(env.dice, env.unwrapped.current_player)
+            valid_moves = env.unwrapped.game.get_valid_moves(env.unwrapped.dice, env.unwrapped.current_player)
             
             # --- New Reward Shaping Start ---
             # For both cases (valid or non-valid moves), we compute shaping rewards.
@@ -915,7 +915,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                 action = (0, 0)
             else:
                 action = agent.act(state, valid_moves=valid_moves, env=env,
-                                   dice=env.dice, current_player=env.unwrapped.current_player,
+                                   dice=env.unwrapped.dice, current_player=env.unwrapped.current_player,
                                    training=True)
             # Capture OLD board and progress before stepping:
             old_board = env.unwrapped.game.get_perspective_board(env.unwrapped.current_player)
@@ -974,7 +974,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                 loss_str = f"Loss: {loss:.8f}" if loss is not None else ""
                 
                 # Create the dice string
-                dice_str = f"Dice: {env.dice}"
+                dice_str = f"Dice: {env.unwrapped.dice}"
                 
                 # Create the move string
                 move_str = ""
@@ -1065,7 +1065,7 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                     # Check if possible moves would violate the block rule
                     all_moves = []
                     for pos in player_checkers:
-                        for die in env.dice:
+                        for die in env.unwrapped.dice:
                             new_pos = pos - die  # Movement is counter-clockwise (decreasing index)
                             if 0 <= new_pos < 24:
                                 all_moves.append((pos, new_pos))
