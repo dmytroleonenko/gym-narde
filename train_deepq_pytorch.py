@@ -932,15 +932,15 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
             new_distance, new_borne_off = compute_progress(env.unwrapped.game, env.unwrapped.current_player)
 
             # Compute incremental rewards:
-            progress_reward = 0.001 * (prev_distance - new_distance)
+            progress_reward = 0.0001 * (prev_distance - new_distance)
             borne_off_increment = new_borne_off - prev_borne_off
-            borne_reward = 0.1 * borne_off_increment
-            coverage_reward = 0.0005 * compute_coverage_reward(new_board)
+            borne_reward = 0.01 * borne_off_increment
+            coverage_reward = 0.00005 * compute_coverage_reward(new_board)
             # Here we compute block_reward as a bonus difference; in this simple example, we use the current board.
-            block_reward = 0.0001 * compute_block_reward(new_board)
+            block_reward = 0.00001 * compute_block_reward(new_board)
             head_bonus = 0.0
             if new_head_count < old_head_count:
-                head_bonus = 0.05 * (old_head_count - new_head_count)
+                head_bonus = 0.005 * (old_head_count - new_head_count)
             
             # Add penalty for no progress or disadvantageous moves
             no_progress_penalty = -0.01 if prev_distance <= new_distance else 0.0
