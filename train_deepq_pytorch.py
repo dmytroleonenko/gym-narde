@@ -420,6 +420,10 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.loss_fn = nn.MSELoss(reduction='none')  # Use 'none' to apply importance sampling weights
         
+        # Initialize TD error statistics
+        self.last_td_error_mean = 0.0
+        self.last_td_error_max = 0.0
+
         # Update target network every 10 steps
         self.update_target_freq = 10
         self.train_step = 0
@@ -708,6 +712,12 @@ class DQNAgent:
             # Use combined TD error for prioritized replay updates, but clip to prevent extremely large values
             td_errors = torch.clamp(td_error_move1 + td_error_move2, 0.0, 100.0)
             
+            # Compute additional metrics:
+            td_error_mean = td_errors.mean().item()
+            td_error_max = td_errors.abs().max().item()
+            self.last_td_error_mean = td_error_mean
+            self.last_td_error_max = td_error_max
+
             # Apply importance sampling weights to losses
             self.optimizer.zero_grad()
             
@@ -755,6 +765,12 @@ class DQNAgent:
             # Calculate TD error for prioritized replay (clamped to prevent explosion)
             td_errors = torch.clamp(torch.abs(target_q_values - current_q_values_for_actions), 0.0, 100.0)
             
+            # Compute additional metrics:
+            td_error_mean = td_errors.mean().item()
+            td_error_max = td_errors.abs().max().item()
+            self.last_td_error_mean = td_error_mean
+            self.last_td_error_max = td_error_max
+
             # Apply importance sampling weights for prioritized replay
             self.optimizer.zero_grad()
             elementwise_loss = self.loss_fn(current_q_values_for_actions, target_q_values)  # Already has reduction='none'
@@ -1109,7 +1125,9 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
         episode_lengths.append(step + 1)
         
         # Print detailed episode statistics
-        print(f"Episode: {e+1}/{episodes}, Score: {total_reward:.2f}, Steps: {step+1}, Epsilon: {agent.epsilon:.2f}, Loss: {episode_loss if episode_loss else 'N/A'}")
+        print(f"Episode: {e+1}/{episodes}, Score: {total_reward:.2f}, Steps: {step+1}, "
+              f"Epsilon: {agent.epsilon:.2f}, Loss: {episode_loss if episode_loss else 'N/A'}, "
+              f"TD Error Mean: {agent.last_td_error_mean:.4f}, TD Error Max: {agent.last_td_error_max:.4f}")
         
         # In verbose or log modes, include final board state
         if log or (e+1) % 10 == 0:
