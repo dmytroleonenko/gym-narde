@@ -39,17 +39,29 @@ class NardeEnv(gym.Env):
             borne_off = np.array([-self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
         
         return np.concatenate([board, dice, borne_off]).astype(np.float32)
+        # Define observation space components
+        board_low = np.full(24, -15, dtype=np.float32)
+        dice_low = np.zeros(2, dtype=np.float32)  # dice values (0-6)
+        borne_off_low = np.zeros(2, dtype=np.float32)  # borne_off counts (0-15)
+        full_low = np.concatenate([board_low, dice_low, borne_off_low])
+        
+        board_high = np.full(24, 15, dtype=np.float32)
+        dice_high = np.full(2, 6, dtype=np.float32)
+        borne_off_high = np.full(2, 15, dtype=np.float32)
+        full_high = np.concatenate([board_high, dice_high, borne_off_high])
+        
+        self.observation_space = spaces.Box(
+            low=full_low,
+            high=full_high,
+            shape=(28,),
+            dtype=np.float32
+        )
         self.action_space = spaces.Tuple((
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
         ))
 
-    def _get_obs(self):
-        return self.game.get_perspective_board(self.current_player)
-
-    def step(self, action):
-        # Roll two dice at the beginning of the turn
-        self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+        self.render_mode = render_mode
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
