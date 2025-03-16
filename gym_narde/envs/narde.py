@@ -14,7 +14,9 @@ import numpy as np
 
 
 def rotate_board(board):
-    return np.concatenate((-board[12:], -board[:12])).astype(np.int32)
+    # Rotates Black's perspective to White's and vice versa
+    rotated = np.concatenate((-board[12:], -board[:12])).astype(np.int32)
+    return rotated
 
 
 class Narde:
@@ -43,33 +45,28 @@ class Narde:
 
     def get_valid_moves(self, roll, current_player=1):
         roll = sorted(roll, reverse=True)
-        board = self.board  # Always use self.board (i.e., always in White's perspective)
+        # Get board in current player's perspective
+        board = self.board if current_player == 1 else rotate_board(self.board)
         moves = []
         direction = -1  # Always move counter-clockwise
 
         for die in roll:
             for pos in range(24):
-                if board[pos] <= 0:
-                    continue  # Only current player's checkers (positive)
+                if (current_player == 1 and board[pos] <= 0) or (current_player == -1 and board[pos] >= 0):
+                    continue  # Only current player's checkers
 
                 new_pos = pos + direction * die
                 if 0 <= new_pos < 24:
-                    if board[new_pos] >= 0:  # Can only land on empty or own point
+                    if (current_player == 1 and board[new_pos] >= 0) or (current_player == -1 and board[new_pos] <= 0):
                         moves.append((pos, new_pos))
                 elif new_pos < 0:
-                    # Distinguish White vs. Black for bearing off:
-                    if current_player == 1:
-                        # White: must have all 15 in 0..5, check board[:6] for +15 total
-                        if np.sum(np.maximum(board[:6], 0)) == 15:
-                            if die >= pos + 1:  # distance from pos to off
-                                moves.append((pos, 'off'))
-                    else:
-                        # Black: must have all 15 in indices 0..5 (from White's perspective), 
-                        # since Black's checkers appear as negative values in the same home region
-                        if np.sum(np.minimum(board[:6], 0)) == -15:
-                            # Distance from pos to off is (pos + 1)
-                            if die >= (pos + 1):
-                                moves.append((pos, 'off'))
+                    # Check bearing off using perspective-correct home board
+                    home_board = board[:6] if current_player == 1 else board[6:12]
+                    total_checkers = sum(abs(home_board))  # Using abs() for Black perspective
+                    
+                    if total_checkers == 15:
+                        if die >= pos + 1:  # distance from pos to off
+                            moves.append((pos, 'off'))
         # --- NEW: Filter moves based on block rule, but allow escape if already in violation ---
         filtered_moves = []
         for move in moves:
@@ -103,22 +100,23 @@ class Narde:
         # Apply the head rule filtering
         return self._filter_head_moves(moves, head_pos, max_head_moves)
 
-    def _execute_move(self, move):
+    def _execute_move(self, move, current_player):
         from_pos, to_pos = move
+        # Convert position to White's perspective if needed
+        if current_player == -1:
+            from_pos = (from_pos + 12) % 24
+            if to_pos != 'off':
+                to_pos = (to_pos + 12) % 24
+
         if to_pos == 'off':
-            # Bearing off: update borne_off counter and remove a checker.
-            # For White: allow bearing off if the piece is from a home position (0–5)
-            if from_pos >= 0 and from_pos <= 5:
-                if self.board[from_pos] > 0:  # White's checker
-                    self.board[from_pos] -= 1
-                    self.borne_off_white += 1
-            else:
-                # Otherwise, treat it as Black's bearing off move (or add additional logic if needed)
-                if self.board[from_pos] < 0:
-                    self.board[from_pos] -= 1
-                    self.borne_off_black += 1
+            if self.board[from_pos] > 0:  # White
+                self.board[from_pos] -= 1
+                self.borne_off_white += 1
+            else:  # Black
+                self.board[from_pos] += 1
+                self.borne_off_black += 1
         else:
-            # Normal move: move one checker from `from_pos` to `to_pos`
+            # Normal move execution remains the same
             if self.board[from_pos] > 0:
                 self.board[from_pos] -= 1
                 self.board[to_pos] += 1
