@@ -122,31 +122,6 @@ def tournament_evaluation(population, num_games_per_match=5, max_steps=1000, par
         print(f" Candidate {idx}: Total wins = {w}")
     
     return wins
-    model.eval()
-    total_reward = 0.0
-    for _ in range(episodes):
-        state, _ = env.reset()
-        done = False
-        ep_reward = 0.0
-        # For evolutionary evaluation, set a fixed max step count
-        steps = 0
-        while not done and steps < 1000:
-            # For action selection, use the decomposed network greedy policy (no exploration)
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(model.device)
-            with torch.no_grad():
-                move1_q_values = model(state_tensor)
-                best_move1 = torch.argmax(move1_q_values, dim=1).item()
-                # For second move, use best Q-value from second head with selected first move
-                selected = torch.tensor([best_move1 % model.move_space_size], device=model.device)
-                move2_q_values = model(state_tensor, selected)
-                best_move2 = torch.argmax(move2_q_values, dim=1).item()
-                action = (best_move1, best_move2)
-            state, reward, done, truncated, _ = env.step(action)
-            done = done or truncated
-            ep_reward += reward
-            steps += 1
-        total_reward += ep_reward
-    return total_reward / episodes
 
 def mutate_model(model, std=MUTATION_STD):
     # Create a new model with perturbed parameters
