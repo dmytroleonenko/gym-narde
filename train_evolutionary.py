@@ -15,7 +15,7 @@ MUTATION_STD = 0.02
 ELITE_FRACTION = 0.2
 
 # Create evaluation environment (using your custom gym)
-env = gym.make('gym_narde:narde-v0', render_mode=None)
+env = gym.make('Narde-v0', render_mode=None)
 
 def evaluate_individual(model, episodes=NUM_EPISODES_PER_INDIVIDUAL):
     model.eval()

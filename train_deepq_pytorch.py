@@ -179,7 +179,7 @@ def render_board(board, highlight_from=None, highlight_to=None):
     return board_str
 
 # Create the environment
-env = gym.make('gym_narde:narde-v0', render_mode=None)
+env = gym.make('Narde-v0', render_mode=None)
 
 class DecomposedDQN(nn.Module):
     def __init__(self, state_size=28, move_space_size=576):
