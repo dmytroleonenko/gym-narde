@@ -34,15 +34,8 @@ def compute_coverage_reward(board):
     return distinct_points
 
 def compute_head_reward(board, head_index):
-    """
-    Penalize leaving too many checkers on the head (the starting point, e.g. index 23 for White).
-    A small negative reward for each extra checker remaining.
-    """
-    head_count = board[head_index]
-    penalty = 0
-    if head_count > 1:
-        penalty = -0.05 * (head_count - 1)
-    return penalty
+    # No penalty for head occupancy
+    return 0
 
 def compute_progress(game, current_player):
     """
