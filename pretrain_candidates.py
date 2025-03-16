@@ -145,7 +145,7 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir, para
     
     if parallel_candidates > 1:
         pool = multiprocessing.Pool(processes=parallel_candidates)
-        candidate_paths = pool.map(lambda args: train_candidate(*args), args_list)
+        candidate_paths = pool.starmap(train_candidate, args_list)
         pool.close()
         pool.join()
     else:
