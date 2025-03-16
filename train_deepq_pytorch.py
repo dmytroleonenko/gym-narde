@@ -774,10 +774,6 @@ class DQNAgent:
         if self.train_step % self.update_target_freq == 0:
             self.update_target_model()
         
-        # Update epsilon
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-        
         return loss.item()
 
 def action_to_idx(action):
@@ -1104,6 +1100,10 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                 games_won += 1
                 break
         
+        # Update epsilon once per episode
+        if agent.epsilon > agent.epsilon_min:
+            agent.epsilon *= agent.epsilon_decay
+
         # Update statistics
         episode_rewards.append(total_reward)
         episode_lengths.append(step + 1)
