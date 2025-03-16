@@ -17,8 +17,8 @@ class NardeEnv(gym.Env):
 
         # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
         self.observation_space = spaces.Box(
-            low=np.array([-15, -15, -15, -15, -6, -6, -15, -15], dtype=np.float32),
-            high=np.array([15, 15, 15, 15, 6, 6, 15, 15], dtype=np.float32),
+            low=full_low,
+            high=np.concatenate([board_high, dice_high, borne_off_high]),
             shape=(28,),
             dtype=np.float32
         )
