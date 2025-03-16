@@ -38,7 +38,8 @@ class NardeEnv(gym.Env):
             spaces.Discrete(24 * 24)
         ))
         self.render_mode = render_mode
-        self.dice = []
+        self.dice = [0, 0] # Initialize dice to avoid NameError
+        
         # Define observation space components
         board_low = np.full(24, -15, dtype=np.float32)
         dice_low = np.zeros(2, dtype=np.float32)
