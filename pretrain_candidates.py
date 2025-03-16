@@ -6,6 +6,24 @@ import numpy as np
 import copy
 from train_deepq_pytorch import DQNAgent, DecomposedDQN
 
+def compute_progress(game, current_player):
+    """
+    Compute the remaining progress (total remaining pip distance) and the number of checkers borne off.
+    We assume the state is presented in the current player's perspective (i.e. lower indices mean closer to bearing off).
+    
+    Returns:
+        remaining_distance: Sum over board positions = sum_{i=0}^{23} (i * count at that point)
+                           (Lower is better.)
+        borne_off: Number of checkers borne off.
+    """
+    # Obtain the board from the game: in current player's perspective.
+    board = game.get_perspective_board(current_player)
+    remaining_distance = sum(i * max(0, board[i]) for i in range(24))
+    # For both players, when using perspective, checkers are positive.
+    # Assume borne_off is stored in the game as follows:
+    borne_off = game.borne_off_white if current_player == 1 else game.borne_off_black
+    return remaining_distance, borne_off
+
 def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
     # Create save directory if needed.
     if not os.path.exists(save_dir):
@@ -37,7 +55,13 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
             state, _ = agent.env.reset()
             done = False
             total_reward = 0
-            while not done:
+            # Initialize progress metrics from the game
+            # Using the current player's perspective (agent.env.unwrapped.current_player)
+            prev_distance, prev_borne_off = compute_progress(agent.env.unwrapped.game,
+                                                             agent.env.unwrapped.current_player)
+            # Set hyperparameters for shaping rewards
+            progress_weight = 0.001   # Reward per pip improvement
+            borne_off_weight = 0.1    # Reward per additional checker borne off
                 # Sample dice for this turn
                 dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
                 # Get valid moves from the game logic
@@ -50,11 +74,25 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
                                        dice=dice, current_player=agent.env.unwrapped.current_player,
                                        training=True)
                 # Step the environment with the chosen action
-                next_state, reward, done, truncated, _ = agent.env.step(action)
-                done = done or truncated
-                # Store the experience
-                agent.remember(state, action, reward, next_state, done)
-                total_reward += reward
+                next_state, env_reward, done, truncated, _ = agent.env.step(action)
+                # Get new progress metrics
+                new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
+                                                               agent.env.unwrapped.current_player)
+                # Compute incremental progress:
+                # A reduction in remaining distance (i.e. progress) yields positive reward.
+                progress_reward = progress_weight * (prev_distance - new_distance)
+                # Reward any additional checkers borne off since previous step.
+                borne_off_increment = new_borne_off - prev_borne_off
+                borne_reward = borne_off_weight * borne_off_increment
+
+                # Compute the final shaped reward by blending the environment reward and the incremental rewards.
+                shaped_reward = env_reward + progress_reward + borne_reward
+
+                # Update progress metrics for the next step
+                prev_distance, prev_borne_off = new_distance, new_borne_off
+                # Store the experience with shaped reward
+                agent.remember(state, action, shaped_reward, next_state, done)
+                total_reward += shaped_reward
                 state = next_state
                 # Train the agent if enough samples have been collected
                 if len(agent.memory) >= agent.batch_size:
