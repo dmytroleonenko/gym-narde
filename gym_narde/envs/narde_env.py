@@ -44,10 +44,10 @@ class NardeEnv(gym.Env):
         shape=(28,),
         dtype=np.float32
     )
-        self.action_space = spaces.Tuple((
-            spaces.Discrete(24 * 24),
-            spaces.Discrete(24 * 24)
-        ))
+    self.action_space = spaces.Tuple((
+        spaces.Discrete(24 * 24),
+        spaces.Discrete(24 * 24)
+    ))
     
     def _get_obs(self):
         # Get board in current player's perspective
