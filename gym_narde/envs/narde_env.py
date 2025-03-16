@@ -41,8 +41,8 @@ class NardeEnv(gym.Env):
         return np.concatenate([board, dice, borne_off]).astype(np.float32)
         # Define observation space components
         board_low = np.full(24, -15, dtype=np.float32)
-        dice_low = np.zeros(2, dtype=np.float32)  # dice values (0-6)
-        borne_off_low = np.zeros(2, dtype=np.float32)  # borne_off counts (0-15)
+        dice_low = np.zeros(2, dtype=np.float32)
+        borne_off_low = np.zeros(2, dtype=np.float32)
         full_low = np.concatenate([board_low, dice_low, borne_off_low])
         
         board_high = np.full(24, 15, dtype=np.float32)
