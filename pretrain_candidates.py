@@ -62,8 +62,9 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
             # Set hyperparameters for shaping rewards
             progress_weight = 0.001   # Reward per pip improvement
             borne_off_weight = 0.1    # Reward per additional checker borne off
-                # Sample dice for this turn
-                dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+
+            # Sample dice for this turn
+            dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
                 # Get valid moves from the game logic
                 valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
                 if len(valid_moves) == 0:
