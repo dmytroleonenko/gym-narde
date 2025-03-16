@@ -15,6 +15,8 @@ class NardeEnv(gym.Env):
         
         self.render_mode = render_mode
         self.consecutive_skip_turns = 0  # Track how many consecutive turns have been skipped
+        self.step_count = 0
+        self.max_steps = 500  # Define maximum steps per episode
 
         # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
         # Define observation space components
@@ -47,6 +49,7 @@ class NardeEnv(gym.Env):
         
         return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
     def step(self, action):
+        self.step_count += 1  # Increment step count for each step
         # Re-roll dice exactly once at the start of each step
         self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         # Use the existing dice (set during reset or prior steps)
@@ -120,6 +123,11 @@ class NardeEnv(gym.Env):
         # Switch players if game continues
         if not done:
             self.current_player *= -1
+        
+        # Add step limit check
+        if self.step_count >= self.max_steps:
+            done = True
+            reward = -0.1  # Penalize for exceeding step limit
             
         # New API: return observation, reward, terminated, truncated, info
         return self._get_obs(), reward, done, False, {}
@@ -155,10 +163,16 @@ class NardeEnv(gym.Env):
         pass
         
     def _check_game_ended(self):
-        if self.current_player == 1 and self.game.borne_off_white == 15:
-            reward = 1 if self.game.borne_off_black > 0 else 2
-            return True, reward
-        elif self.current_player == -1 and self.game.borne_off_black == 15:
-            reward = 1 if self.game.borne_off_white > 0 else 2
+        # Check if any player has borne off all checkers
+        if self.game.borne_off_white >= 15 or self.game.borne_off_black >= 15:
+            # Calculate reward based on mars/oin rules
+            white_off = self.game.borne_off_white
+            black_off = self.game.borne_off_black
+
+            if white_off >= 15:
+                reward = 2 if black_off == 0 else 1  # Mars if opponent has none, else Oin
+            else:
+                reward = 2 if white_off == 0 else 1
+
             return True, reward
         return False, 0
