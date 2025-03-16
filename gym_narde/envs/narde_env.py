@@ -25,40 +25,47 @@ class NardeEnv(gym.Env):
         board_high = np.full(24, 15, dtype=np.float32)
         dice_high = np.full(2, 6, dtype=np.float32)
         borne_off_high = np.full(2, 15, dtype=np.float32)
-        full_high = np.concatenate([board_high, dice_high, borne_off_high])
+        full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
         
-        self.observation_space = spaces.Box(
-            low=full_low,
-            high=full_high,
-            shape=(28,),
-            dtype=np.float32
-        )
-        self.dice = [0, 0]  # Initialize to default
+    # Define observation space components before creating the Box
+    board_low = np.full(24, -15, dtype=np.float32)  # Current player's checkers are positive
+    dice_low = np.zeros(2, dtype=np.float32)        # dice values (0–6)
+    borne_off_low = np.zeros(2, dtype=np.float32)    # borme_off counts
+    full_low = np.concatenate([board_low, dice_low, borne_off_low], axis=0)
+    
+    board_high = np.full(24, 15, dtype=np.float32)
+    dice_high = np.full(2, 6, dtype=np.float32)
+    borne_off_high = np.full(2, 15, dtype=np.float32)
+    full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
+    
+    self.observation_space = spaces.Box(
+        low=full_low,
+        high=full_high,
+        shape=(28,),
+        dtype=np.float32
+    )
         self.action_space = spaces.Tuple((
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
         ))
-        self.render_mode = render_mode
-        self.render_mode = render_mode
-        self.render_mode = render_mode
     
     def _get_obs(self):
         # Get board in current player's perspective
         board = self.game.get_perspective_board(self.current_player).astype(np.float32)
         
-        # Convert dice to array
+        # dice values (2 values)
         dice_array = np.array(self.dice, dtype=np.float32)
         
-        # borne_off counts (current player's first)
+        # Borme_off counts (2 values)
         if self.current_player == 1:
             borne_off = np.array([self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
         else:
-            # for Black, invert the borne_off counts
+            # For Black, invert the counts
             borne_off = np.array([self.game.borne_off_black, self.game.borne_off_white], dtype=np.float32)
         
         return np.concatenate([board, dice_array, borne_off]).astype(np.float32)
         self.render_mode = render_mode
-        self.dice = [0, 0] # Initialize dice to avoid NameError
+        self.dice = [0, 0]  # Initialize dice to avoid NameError
         
         # Define observation space components
         self.render_mode = render_mode
@@ -71,14 +78,14 @@ class NardeEnv(gym.Env):
         board_high = np.full(24, 15, dtype=np.float32)
         dice_high = np.full(2, 6, dtype=np.float32)
         borne_off_high = np.full(2, 15, dtype=np.float32)
-        full_high = np.concatenate([board_high, dice_high, borne_off_high])
+        full_high = np.concatenate([board_high, dice_high, borne_off_high], axis=0)
         
-        self.observation_space = spaces.Box(
-            low=full_low,
-            high=full_high,
-            shape=(28,),
-            dtype=np.float32
-        )
+    self.observation_space = spaces.Box(
+        low=full_low,
+        high=full_high,
+        shape=(28,),
+        dtype=np.float32
+    )
         self.action_space = spaces.Tuple((
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
@@ -93,7 +100,7 @@ class NardeEnv(gym.Env):
     def step(self, action):
         # Roll dice and store in self.dice
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-        self.dice = dice
+        self.dice = dice  # Store dice for observation computation
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         
@@ -175,6 +182,18 @@ class NardeEnv(gym.Env):
         # Initialize RNG if seed is provided
         if seed is not None:
             np.random.seed(seed)
+            
+        self.game = Narde()
+        while True:
+            white_roll = np.random.randint(1, 7)
+            black_roll = np.random.randint(1, 7)
+            if white_roll != black_roll:
+                break
+        # The winning player (strictly higher roll) becomes White; otherwise Black.
+        self.current_player = 1 if white_roll > black_roll else -1
+        
+        # Return observation and info dict according to new API
+        self.dice = [0, 0]  # Initialize to default
             
         self.game = Narde()
         while True:
