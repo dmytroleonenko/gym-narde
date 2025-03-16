@@ -4,6 +4,7 @@ import torch
 import gymnasium as gym
 import numpy as np
 import copy
+import multiprocessing
 from train_deepq_pytorch import DQNAgent, DecomposedDQN
 
 def compute_block_reward(board):
@@ -55,124 +56,102 @@ def compute_progress(game, current_player):
     borne_off = game.borne_off_white if current_player == 1 else game.borne_off_black
     return remaining_distance, borne_off
 
-def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
-    # Create save directory if needed.
+def train_candidate(candidate_index, episodes, learning_rate, save_dir):
+    """
+    Trains a single candidate model and saves it to disk.
+    Returns the path to the saved candidate model.
+    """
+    print(f"Pretraining candidate {candidate_index+1} ...")
+    # Initialize a fresh agent with the decomposed network.
+    agent = DQNAgent(
+        state_size=28,
+        action_size=576 * 576,
+        use_decomposed_network=True,
+        use_prioritized_replay=True
+    )
+    # Override learning rate if provided.
+    agent.learning_rate = learning_rate
+    agent.optimizer = torch.optim.Adam(agent.model.parameters(), lr=learning_rate)
+    
+    # Create an environment for pretraining and attach it to the agent.
+    agent.env = gym.make('Narde-v0', render_mode=None)
+    
+    # Training loop for this candidate:
+    for ep in range(episodes):
+        state, _ = agent.env.reset()
+        done = False
+        total_reward = 0
+        # Initialize progress metrics from the game
+        prev_distance, prev_borne_off = compute_progress(agent.env.unwrapped.game,
+                                                         agent.env.unwrapped.current_player)
+        progress_weight = 0.001   # Reward per pip improvement
+        borne_off_weight = 0.1    # Reward per additional checker borne off
+
+        while not done:
+            # Sample dice for this turn
+            dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
+            valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
+            if len(valid_moves) == 0:
+                action = (0, 0)  # Skip turn if no valid moves
+            else:
+                action = agent.act(state, valid_moves=valid_moves, env=agent.env,
+                                   dice=dice, current_player=agent.env.unwrapped.current_player,
+                                   training=True)
+            # Capture OLD board before stepping
+            old_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+            old_head_count = old_board[23]
+            # Step the environment with the chosen action
+            next_state, env_reward, done, truncated, _ = agent.env.step(action)
+            done = done or truncated
+            # Capture NEW board after stepping
+            new_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+            new_head_count = new_board[23]
+            # Get new progress metrics
+            new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
+                                                           agent.env.unwrapped.current_player)
+            progress_reward = progress_weight * (prev_distance - new_distance)
+            borne_off_increment = new_borne_off - prev_borne_off
+            borne_reward = borne_off_weight * borne_off_increment
+            current_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+            # Additional shaping signals
+            old_coverage = compute_coverage_reward(current_board)
+            old_block = compute_block_reward(current_board)
+            new_block = compute_block_reward(current_board)
+            block_reward = (new_block - old_block)
+            head_reward = 0.0
+            if new_head_count < old_head_count:
+                head_reward = 0.05 * (old_head_count - new_head_count)
+            coverage_weight = 0.0005
+            shaped_reward = env_reward + progress_reward + borne_reward \
+                             + coverage_weight * old_coverage + 0.0001 * block_reward + head_reward
+            prev_distance, prev_borne_off = new_distance, new_borne_off
+            agent.remember(state, action, shaped_reward, next_state, done)
+            total_reward += shaped_reward
+            state = next_state
+            if len(agent.memory) >= agent.batch_size:
+                agent.replay()
+    agent.env.close()
+    candidate_path = os.path.join(save_dir, f"candidate_{candidate_index+1}.pt")
+    torch.save(agent.model.state_dict(), candidate_path)
+    print(f"Candidate {candidate_index+1} saved to {candidate_path}")
+    return candidate_path
+
+def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir, parallel_candidates):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    
-    # For pretraining, we create a base DQNAgent (or just the model) and train it for the specified number of episodes.
-    # For simplicity, we’ll use the DQNAgent, run its training loop for a few episodes, and then save a copy.
-    # (You can tweak the internal loop as needed.)
-    
-    candidates = []
-    for i in range(candidate_count):
-        print(f"Pretraining candidate {i+1}/{candidate_count} ...")
-        # Initialize a fresh agent with the decomposed network.
-        agent = DQNAgent(
-            state_size=28,
-            action_size=576 * 576,
-            use_decomposed_network=True,
-            use_prioritized_replay=True
-        )
-        # Override learning rate if provided.
-        agent.learning_rate = learning_rate
-        agent.optimizer = torch.optim.Adam(agent.model.parameters(), lr=learning_rate)
         
-        # Create an environment for pretraining and attach it to the agent.
-        agent.env = gym.make('Narde-v0', render_mode=None)
-
-        # Training loop for this candidate:
-        for ep in range(episodes):
-            state, _ = agent.env.reset()
-            done = False
-            total_reward = 0
-            # Initialize progress metrics from the game
-            prev_distance, prev_borne_off = compute_progress(agent.env.unwrapped.game,
-                                                             agent.env.unwrapped.current_player)
-            progress_weight = 0.001   # Reward per pip improvement
-            borne_off_weight = 0.1    # Reward per additional checker borne off
-
-            while not done:
-                # Sample dice for this turn
-                dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
-                # Get valid moves from the game logic
-                valid_moves = agent.env.unwrapped.game.get_valid_moves(dice, agent.env.unwrapped.current_player)
-                if len(valid_moves) == 0:
-                    action = (0, 0)  # Skip turn if no valid moves
-                else:
-                    # Use agent.act to select an action with exploration (training=True)
-                    action = agent.act(state, valid_moves=valid_moves, env=agent.env,
-                                       dice=dice, current_player=agent.env.unwrapped.current_player,
-                                       training=True)
-                # Capture OLD board before stepping
-                old_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
-                old_head_count = old_board[23]  # White's head is index 23 in perspective (adjust if needed)
-
-                # Step the environment with the chosen action
-                next_state, env_reward, done, truncated, _ = agent.env.step(action)
-                # Capture NEW board after stepping
-                new_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
-                new_head_count = new_board[23]
-
-                # Get new progress metrics
-                new_distance, new_borne_off = compute_progress(agent.env.unwrapped.game,
-                                                               agent.env.unwrapped.current_player)
-                # Compute incremental progress:
-                # A reduction in remaining distance (i.e. progress) yields positive reward.
-                progress_reward = progress_weight * (prev_distance - new_distance)
-                # Reward any additional checkers borne off since previous step.
-                borne_off_increment = new_borne_off - prev_borne_off
-                borne_reward = borne_off_weight * borne_off_increment
-
-                # Get the current board state from the game (in the current player's perspective)
-                current_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
-                
-                ## --- New: Additional Shaping Signals ---
-                # 1. Board Coverage Reward: Count the number of points with >=2 checkers.
-                old_coverage = compute_coverage_reward(current_board)
-                # 2. Block Reward: Reward forming consecutive points.
-                old_block = compute_block_reward(current_board)
-                new_block = compute_block_reward(current_board)
-                block_reward = (new_block - old_block)
-                
-                # 3. Head Clearing Reward/Penalty: For White, assume head is at index 23.
-                head_index = 23
-                head_reward = compute_head_reward(current_board, head_index)
-                
-                # Reward each checker that actually left the head.
-                # If old_head_count = 15 and new_head_count = 13, that means 2 left => bonus = 0.05 * 2 = 0.1
-                head_reward = 0.0
-                if new_head_count < old_head_count:
-                    head_reward = 0.05 * (old_head_count - new_head_count)
-                coverage_weight = 0.0005
-                block_weight = 0.0001
-                head_weight = 1.0
-                
-                coverage_reward = coverage_weight * old_coverage
-                shaped_reward = env_reward + progress_reward + borne_reward\
-                                 + coverage_reward + block_weight * block_reward + head_reward
-
-                # Update progress metrics for the next step
-                prev_distance, prev_borne_off = new_distance, new_borne_off
-                # Store the experience with shaped reward
-                agent.remember(state, action, shaped_reward, next_state, done)
-                total_reward += shaped_reward
-                state = next_state
-                # Train the agent if enough samples have been collected
-                if len(agent.memory) >= agent.batch_size:
-                    agent.replay()
-            print(f"Candidate {i+1}, Episode {ep+1}/{episodes}: Total Reward = {total_reward:.2f}")
-        
-        # Optionally, close the environment when done training this candidate.
-        agent.env.close()
-            
-        # After training, save the candidate model.
-        candidate_path = os.path.join(save_dir, f"candidate_{i+1}.pt")
-        torch.save(agent.model.state_dict(), candidate_path)
-        print(f"Candidate {i+1} saved to {candidate_path}")
-        candidates.append(candidate_path)
+    # Create argument list for each candidate.
+    args_list = [(i, episodes, learning_rate, save_dir) for i in range(candidate_count)]
     
-    print(f"Pretraining complete: {len(candidates)} candidate models saved to {save_dir}")
+    if parallel_candidates > 1:
+        pool = multiprocessing.Pool(processes=parallel_candidates)
+        candidate_paths = pool.map(lambda args: train_candidate(*args), args_list)
+        pool.close()
+        pool.join()
+    else:
+        candidate_paths = [train_candidate(i, episodes, learning_rate, save_dir) for i in range(candidate_count)]
+    
+    print(f"Pretraining complete: {len(candidate_paths)} candidate models saved to {save_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -183,7 +162,18 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4, help="Learning rate for gradient descent")
     parser.add_argument('--save-dir', type=str, default="pretrained_models", help="Folder to save candidate models")
     
+    parser.add_argument('--parallel-candidates', type=int, default=1,
+                        help="Number of candidate models to pretrain in parallel")
+    
     args = parser.parse_args()
+    
+    pretrain_candidates(
+        candidate_count=args.candidate_count,
+        episodes=args.episodes,
+        learning_rate=args.lr,
+        save_dir=args.save_dir,
+        parallel_candidates=args.parallel_candidates
+    )
     
     pretrain_candidates(
         candidate_count=args.candidate_count,
