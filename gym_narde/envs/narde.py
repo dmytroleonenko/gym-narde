@@ -64,10 +64,10 @@ class Narde:
                             if die >= pos + 1:  # distance from pos to off
                                 moves.append((pos, 'off'))
                     else:
-                        # Black: must have all 15 in indices 6..11, check board[6:12] for -15 total
-                        if np.sum(np.minimum(board[6:12], 0)) == -15:
-                            # distance from pos to off is (12 - pos) if black's home is 6..11
-                            if die >= (12 - pos):
+                        # Black: must have all 15 in indices 18..23, check board[18:24] for -15 total
+                        if np.sum(np.minimum(board[18:24], 0)) == -15:
+                            # distance from pos to off is (24 - pos)
+                            if die >= (24 - pos):
                                 moves.append((pos, 'off'))
         # --- NEW: Filter moves based on block rule, but allow escape if already in violation ---
         filtered_moves = []
