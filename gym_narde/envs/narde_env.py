@@ -15,7 +15,30 @@ class NardeEnv(gym.Env):
         
         self.render_mode = render_mode
 
-        self.observation_space = spaces.Box(low=-15, high=15, shape=(24,), dtype=np.int32)
+        # New observation space: 24 (board) + 2 (dice) + 2 (borne_off) = 28 features
+        self.observation_space = spaces.Box(
+            low=np.array([-15, -15, -15, -15, -6, -6, -15, -15], dtype=np.float32),
+            high=np.array([15, 15, 15, 15, 6, 6, 15, 15], dtype=np.float32),
+            shape=(28,),
+            dtype=np.float32
+        )
+        self.dice = []  # Initialize as part of the state.
+
+    def _get_obs(self):
+        # 1. Get rotated board (24 values)
+        board = self.game.get_perspective_board(self.current_player)
+        
+        # 2. Add dice values (clipped to 0-6)
+        dice = np.array(self.dice, dtype=np.float32)[:2]  # Ensure length=2 (e.g., single die is [3,0])
+        
+        # 3. Borne-off counts (2 values)
+        if self.current_player == 1:
+            borne_off = np.array([self.game.borne_off_white, -self.game.borne_off_black], dtype=np.float32)
+        else:
+            # For Black's turn, invert borne_off counts (so agent sees its borne_off as positive)
+            borne_off = np.array([-self.game.borne_off_white, self.game.borne_off_black], dtype=np.float32)
+        
+        return np.concatenate([board, dice, borne_off]).astype(np.float32)
         self.action_space = spaces.Tuple((
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
@@ -25,6 +48,8 @@ class NardeEnv(gym.Env):
         return self.game.get_perspective_board(self.current_player)
 
     def step(self, action):
+        # Roll two dice at the beginning of the turn
+        self.dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         # Roll two dice at the beginning of the turn
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
         

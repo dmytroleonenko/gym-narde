@@ -182,7 +182,7 @@ def render_board(board, highlight_from=None, highlight_to=None):
 env = gym.make('gym_narde:narde-v0', render_mode=None)
 
 class DecomposedDQN(nn.Module):
-    def __init__(self, state_size, move_space_size=576):
+    def __init__(self, state_size=28, move_space_size=576):
         super(DecomposedDQN, self).__init__()
         self.move_space_size = move_space_size
         
@@ -343,7 +343,7 @@ class PrioritizedReplayBuffer:
 
 
 class DQNAgent:
-    def __init__(self, state_size, action_size, use_decomposed_network=True, use_prioritized_replay=True):
+    def __init__(self, state_size=28, action_size=576 * 576, use_decomposed_network=True, use_prioritized_replay=True):
         self.state_size = state_size
         self.action_size = action_size
         
@@ -910,6 +910,9 @@ def main(episodes=10000, max_steps=1000, epsilon=1.0, epsilon_decay=0.995, learn
                         reward += 1.0 * newly_borne_off
                     # Additional cumulative reward for total progress
                     reward += 0.1 * total_black_off
+
+                # Add reward based on dice usage (optional)
+                reward += 0.01 * sum(agent.state[24:26])  # Encourage using both dice
             
             # Remember experience
             agent.remember(state, action, reward, next_state, done)
