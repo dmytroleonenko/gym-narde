@@ -75,7 +75,7 @@ class Narde:
                     if np.sum(np.maximum(board[:6], 0)) == 15:  # All White's checkers are in positions 0...5
                         if die >= pos + 1:
                             moves.append((pos, 'off'))
-        # --- NEW: Filter out moves that create an illegal block (Rule 8) ---
+        # --- NEW: Filter moves based on block rule, but allow escape if already in violation ---
         filtered_moves = []
         for move in moves:
             board_copy = board.copy()
@@ -84,7 +84,10 @@ class Narde:
             else:
                 board_copy[move[0]] -= 1
                 board_copy[move[1]] += 1
-            if not self._violates_block_rule(board_copy):
+
+            already_violated = self._violates_block_rule(board)
+            new_violated = self._violates_block_rule(board_copy)
+            if not (new_violated and not already_violated):
                 filtered_moves.append(move)
         moves = filtered_moves
         # --- End of new block ---
