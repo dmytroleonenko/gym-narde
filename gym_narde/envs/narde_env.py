@@ -38,6 +38,7 @@ class NardeEnv(gym.Env):
             spaces.Discrete(24 * 24),
             spaces.Discrete(24 * 24)
         ))
+        self.render_mode = render_mode
     
     def _get_obs(self):
         # Get board in current player's perspective
@@ -58,6 +59,7 @@ class NardeEnv(gym.Env):
         self.dice = [0, 0] # Initialize dice to avoid NameError
         
         # Define observation space components
+        self.render_mode = render_mode
         board_low = np.full(24, -15, dtype=np.float32)
         dice_low = np.zeros(2, dtype=np.float32)
         borne_off_low = np.zeros(2, dtype=np.float32)
@@ -83,6 +85,7 @@ class NardeEnv(gym.Env):
         # Roll two dice at the beginning of the turn
         self.dice = [0, 0]  # Initialize dice to avoid NameError
         
+        self.render_mode = render_mode
     def step(self, action):
         # Roll dice and store in self.dice
         dice = [np.random.randint(1, 7), np.random.randint(1, 7)]
