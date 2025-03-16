@@ -377,11 +377,6 @@ class DQNAgent:
             print("Using decomposed action space network")
             self.model = DecomposedDQN(state_size, self.move_space_size).to(self.device)
             self.target_model = DecomposedDQN(state_size, self.move_space_size).to(self.device)
-        else:
-            print("Using standard DQN network")
-            # For backward compatibility
-            self.model = DQN(state_size, action_size).to(self.device)
-            self.target_model = DQN(state_size, action_size).to(self.device)
             
         self.update_target_model()
         
