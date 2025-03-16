@@ -6,6 +6,44 @@ import numpy as np
 import copy
 from train_deepq_pytorch import DQNAgent, DecomposedDQN
 
+def compute_block_reward(board):
+    """
+    Compute a bonus for consecutive points occupied by at least 2 checkers.
+    A simple measure: count consecutive points where board[i] >= 2.
+    Returns a bonus value (the higher the streak, the higher the bonus).
+    """
+    block_bonus = 0
+    consecutive_count = 0
+    for i in range(len(board)):
+        if board[i] >= 2:
+            consecutive_count += 1
+        else:
+            if consecutive_count > 1:
+                block_bonus += (consecutive_count ** 1.5)
+            consecutive_count = 0
+    if consecutive_count > 1:
+        block_bonus += (consecutive_count ** 1.5)
+    return block_bonus
+
+def compute_coverage_reward(board):
+    """
+    Reward spreading out your checkers.
+    Here, we count the number of distinct points occupied by at least 2 checkers.
+    """
+    distinct_points = sum(1 for point in board if point >= 2)
+    return distinct_points
+
+def compute_head_reward(board, head_index):
+    """
+    Penalize leaving too many checkers on the head (the starting point, e.g. index 23 for White).
+    A small negative reward for each extra checker remaining.
+    """
+    head_count = board[head_index]
+    penalty = 0
+    if head_count > 1:
+        penalty = -0.05 * (head_count - 1)
+    return penalty
+
 def compute_progress(game, current_player):
     """
     Compute the remaining progress (total remaining pip distance) and the number of checkers borne off.
@@ -56,10 +94,8 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
             done = False
             total_reward = 0
             # Initialize progress metrics from the game
-            # Using the current player's perspective (agent.env.unwrapped.current_player)
             prev_distance, prev_borne_off = compute_progress(agent.env.unwrapped.game,
                                                              agent.env.unwrapped.current_player)
-            # Set hyperparameters for shaping rewards
             progress_weight = 0.001   # Reward per pip improvement
             borne_off_weight = 0.1    # Reward per additional checker borne off
 
@@ -87,8 +123,29 @@ def pretrain_candidates(candidate_count, episodes, learning_rate, save_dir):
                 borne_off_increment = new_borne_off - prev_borne_off
                 borne_reward = borne_off_weight * borne_off_increment
 
-                # Compute the final shaped reward by blending the environment reward and the incremental rewards.
-                shaped_reward = env_reward + progress_reward + borne_reward
+                # Get the current board state from the game (in the current player's perspective)
+                current_board = agent.env.unwrapped.game.get_perspective_board(agent.env.unwrapped.current_player)
+                
+                ## --- New: Additional Shaping Signals ---
+                # 1. Board Coverage Reward: Count the number of points with >=2 checkers.
+                old_coverage = compute_coverage_reward(current_board)
+                # 2. Block Reward: Reward forming consecutive points.
+                old_block = compute_block_reward(current_board)
+                new_block = compute_block_reward(current_board)
+                block_reward = (new_block - old_block)
+                
+                # 3. Head Clearing Reward/Penalty: For White, assume head is at index 23.
+                head_index = 23
+                head_reward = compute_head_reward(current_board, head_index)
+                
+                # Define small weights for these signals.
+                coverage_weight = 0.0005
+                block_weight = 0.0001
+                head_weight = 1.0
+                
+                coverage_reward = coverage_weight * old_coverage
+                shaped_reward = env_reward + progress_reward + borne_reward\
+                                 + coverage_reward + block_weight * block_reward + head_weight * head_reward
 
                 # Update progress metrics for the next step
                 prev_distance, prev_borne_off = new_distance, new_borne_off
