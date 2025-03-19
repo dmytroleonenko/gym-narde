@@ -34,9 +34,9 @@ class ReplayBuffer:
         for obs, action, reward, policy in game_history:
             # Convert observations and policies to numpy arrays with correct dtype
             if not isinstance(obs, np.ndarray):
-                obs = np.array(obs, dtype=np.float32)
+                obs = np.array(obs, dtype=np.bfloat16)
             if not isinstance(policy, np.ndarray):
-                policy = np.array(policy, dtype=np.float32)
+                policy = np.array(policy, dtype=np.bfloat16)
             
             processed_game.append((obs, action, reward, policy))
         
@@ -209,21 +209,21 @@ class ReplayBuffer:
         # Prepare batch for training with optimized tensor creation
         if same_shape_obs:
             # Use np.stack for observations (faster for uniform-shaped arrays)
-            observations = np.stack([transition[0] for transition in batch]).astype(np.float32)
+            observations = np.stack([transition[0] for transition in batch]).astype(np.bfloat16)
         else:
             # Fall back to array if shapes are different
-            observations = np.array([transition[0] for transition in batch], dtype=np.float32)
+            observations = np.array([transition[0] for transition in batch], dtype=np.bfloat16)
         
         # Actions and bootstrap positions are simple integers, directly convert to arrays
         actions = np.array([transition[1] for transition in batch], dtype=np.int64)
-        target_values = np.array([transition[2] for transition in batch], dtype=np.float32)
+        target_values = np.array([transition[2] for transition in batch], dtype=np.bfloat16)
         
         if same_shape_policy:
             # Use np.stack for policies (faster for uniform-shaped arrays)
-            target_policies = np.stack([transition[3] for transition in batch]).astype(np.float32)
+            target_policies = np.stack([transition[3] for transition in batch]).astype(np.bfloat16)
         else:
             # Fall back to array if shapes are different
-            target_policies = np.array([transition[3] for transition in batch], dtype=np.float32)
+            target_policies = np.array([transition[3] for transition in batch], dtype=np.bfloat16)
             
         bootstrap_positions = np.array([transition[4] for transition in batch], dtype=np.int64)
         

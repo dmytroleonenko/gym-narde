@@ -23,7 +23,7 @@ class PrioritizedReplayBuffer:
         
         # Initialize buffer and priorities
         self.buffer = [None] * capacity
-        self.priorities = np.ones(capacity, dtype=np.float32)  # Start with priority 1.0 instead of 0
+        self.priorities = np.ones(capacity, dtype=np.bfloat16)  # Start with priority 1.0 instead of 0
         self.position = 0  # Current write position
         self.size = 0  # Current buffer size
         
@@ -261,11 +261,11 @@ class DQNAgent:
         
         # Unpack experiences
         batch_size = len(experiences)
-        states = np.empty((batch_size, self.state_size), dtype=np.float32)
+        states = np.empty((batch_size, self.state_size), dtype=np.bfloat16)
         actions = np.empty((batch_size, 2), dtype=np.int64)
-        rewards = np.empty(batch_size, dtype=np.float32)
-        next_states = np.empty((batch_size, self.state_size), dtype=np.float32)
-        dones = np.empty(batch_size, dtype=np.float32)
+        rewards = np.empty(batch_size, dtype=np.bfloat16)
+        next_states = np.empty((batch_size, self.state_size), dtype=np.bfloat16)
+        dones = np.empty(batch_size, dtype=np.bfloat16)
         
         for i, e in enumerate(experiences):
             states[i] = e[0]

@@ -343,10 +343,10 @@ def convert_game_history_from_process(serialized_history):
     game_history = []
     for item in serialized_history:
         game_history.append((
-            np.array(item["observation"], dtype=np.float32),
+            np.array(item["observation"], dtype=np.bfloat16),
             item["action_idx"],
             item["reward"],
-            np.array(item["policy"], dtype=np.float32)
+            np.array(item["policy"], dtype=np.bfloat16)
         ))
     return game_history
 
