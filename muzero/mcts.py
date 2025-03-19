@@ -110,10 +110,12 @@ class MCTS:
                     self._zeros_action_tensor = torch.zeros_like(root_policy)
                 noise = self._zeros_action_tensor.clone()
                 
-                # Only generate Dirichlet noise for valid actions
+                # Generate Dirichlet noise for valid actions
                 valid_noise = np.random.dirichlet([self.dirichlet_alpha] * len(valid_actions))
-                noise_tensor = torch.FloatTensor(valid_noise).to(self.device)
-                noise.index_fill_(0, torch.LongTensor(valid_actions).to(self.device), noise_tensor)
+                
+                # Apply the noise to each valid action individually
+                for i, action in enumerate(valid_actions):
+                    noise[action] = valid_noise[i]
             else:
                 noise = torch.FloatTensor(
                     np.random.dirichlet([self.dirichlet_alpha] * self.action_space_size)
