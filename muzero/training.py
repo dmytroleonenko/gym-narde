@@ -22,6 +22,14 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from collections import deque
 
+# Set multiprocessing start method to 'spawn' for CUDA compatibility
+if torch.cuda.is_available():
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+        print("Multiprocessing start method set to 'spawn' for CUDA compatibility")
+    except RuntimeError:
+        print("Multiprocessing start method already set to 'spawn' or could not be set. This might cause issues with CUDA and multiprocessing.")
+
 from muzero.models import MuZeroNetwork
 from muzero.mcts import MCTS
 from muzero.replay import ReplayBuffer
