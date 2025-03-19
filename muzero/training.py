@@ -223,6 +223,28 @@ def update_weights(optimizer, network, batch, device="cpu"):
     return value_loss.item(), policy_loss.item(), reward_loss.item()
 
 
+# Add this helper function outside of any other function to make it picklable
+def run_game_with_args(args):
+    """
+    Helper function for running self-play games in parallel.
+    Unpacks args and calls run_self_play_game_process.
+    
+    Args:
+        args: Tuple containing (game_id, seed, model_path, num_simulations, temperature)
+        
+    Returns:
+        Result from run_self_play_game_process
+    """
+    game_id, seed, model_path, num_simulations, temperature = args
+    return run_self_play_game_process(
+        game_id=game_id,
+        seed=seed,
+        model_path=model_path,
+        num_simulations=num_simulations,
+        temperature=temperature
+    )
+
+
 def run_self_play_game_process(game_id, seed=None, model_path=None, num_simulations=50, temperature=1.0):
     """
     Run a self-play game in a separate process.
@@ -520,26 +542,22 @@ def train_muzero(
                     
                     # Set up function for parallel self-play
                     base_seed = int(time.time()) % 10000  # Use time as base seed
-                    # Create a partial function with just model_path and other fixed params
-                    # Leave game_id and seed as positional args for map
-                    run_game_fn = partial(
-                        run_self_play_game_process,
-                        model_path=temp_model_path,
-                        num_simulations=num_simulations,
-                        temperature=temperature
-                    )
                     
                     # Generate episode IDs and seeds
                     episode_ids = list(range(episode, episode + parallel_episodes))
                     seeds = [base_seed + i for i in range(parallel_episodes)]
                     
+                    # Create complete argument tuples for each game
+                    arg_tuples = [
+                        (game_id, seed, temp_model_path, num_simulations, temperature)
+                        for game_id, seed in zip(episode_ids, seeds)
+                    ]
+                    
                     # Run self-play games in parallel
                     game_results = []
                     with ProcessPoolExecutor(max_workers=parallel_self_play) as executor:
-                        # Create tuples of arguments, excluding model_path which is already set in partial
-                        arg_tuples = [(game_id, seed) for game_id, seed in zip(episode_ids, seeds)]
-                        # Use starmap to unpack arguments correctly
-                        for result in executor.map(lambda args: run_game_fn(*args), arg_tuples):
+                        # Use map with run_game_with_args directly
+                        for result in executor.map(run_game_with_args, arg_tuples):
                             game_results.append(result)
                     
                     # Process results
