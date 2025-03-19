@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#trained models
+*.pth
+
 # Distribution / packaging
 .Python
 build/

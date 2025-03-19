@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Train a DQN agent for Narde game using the QNetwork architecture.
+Train a DQN agent for Narde game using the DecomposedDQN architecture.
 """
 
 import os
@@ -27,7 +27,7 @@ else:
         print("MPS device not available, using CPU")
 
 # Import from our package
-from narde_rl.networks.qnetwork import QNetwork
+from narde_rl.networks.decomposed_dqn import DecomposedDQN
 from narde_rl.utils.agents import DQNAgent
 from narde_rl.utils.training import (
     test_action_conversion, 
@@ -37,12 +37,12 @@ from narde_rl.utils.training import (
 
 def main():
     """
-    Main function to train a QNetwork-based DQN agent for Narde game.
+    Main function to train a DecomposedDQN-based DQN agent for Narde game.
     """
-    print("Starting Narde training with standard QNetwork...")
+    print("Starting Narde training with DecomposedDQN architecture...")
     
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='Train a DQN agent for Narde')
+    parser = argparse.ArgumentParser(description='Train a DecomposedDQN agent for Narde')
     parser.add_argument('--episodes', type=int, default=1000, help="Number of episodes to train")
     parser.add_argument('--max-steps', type=int, default=500, help="Maximum steps per episode")
     parser.add_argument('--epsilon-decay', type=float, default=0.995, help="Epsilon decay rate")
@@ -61,7 +61,7 @@ def main():
         return
     
     # Initialize with default values
-    lr = 1e-3
+    lr = 1e-4  # Lower learning rate for stability
     epsilon_start = 1.0
     epsilon_min = 0.01
     
@@ -74,16 +74,16 @@ def main():
     action_dim = 576  # Max possible moves
     parallel_env = ParallelEnv(env_name='Narde-v0', num_envs=args.num_envs)
     
-    # Create QNetwork agent
-    print("Creating QNetwork agent...")
+    # Create DecomposedDQN agent
+    print("Creating DecomposedDQN agent...")
     agent = DQNAgent(
         state_size=state_dim,
         action_size=action_dim,
-        network_class=QNetwork,
-        use_decomposed=False
+        network_class=DecomposedDQN,
+        use_decomposed=True
     )
     
-    # Update agent parameters
+    # Update agent parameters for better MPS compatibility
     agent.epsilon = epsilon_start
     agent.epsilon_min = epsilon_min
     agent.epsilon_decay = args.epsilon_decay
@@ -100,7 +100,7 @@ def main():
     agent.update_target_freq = 5  # More frequent target network updates
     
     print(f"Agent created: epsilon={agent.epsilon}, learning_rate={agent.learning_rate}")
-    print(f"Using device: {agent.device} with batch size: {agent.batch_size}")
+    print(f"Using device: {agent.device} with batch size: {agent.batch_size} and optimized MPS settings")
 
     try:
         print("Starting training...")
@@ -117,24 +117,24 @@ def main():
         
         # Save final model
         print("Training complete, saving model...")
-        model_path = 'saved_models/qnetwork_narde_final.pt'
+        model_path = 'saved_models/decomposeddqn_narde_final.pt'
         torch.save(agent.model.network.state_dict(), model_path)
         print(f"Model saved to {model_path}")
         
         # Plot training progress
         print("Generating training progress plot...")
-        plot_path = 'saved_models/qnetwork_training_progress.png'
+        plot_path = 'saved_models/decomposeddqn_training_progress.png'
         plt.figure(figsize=(12, 4))
         plt.plot(range(len(episode_rewards)), episode_rewards)
         plt.xlabel('Episode')
         plt.ylabel('Episode Reward')
-        plt.title('QNetwork Episode Rewards during Training')
+        plt.title('DecomposedDQN Episode Rewards during Training')
         plt.savefig(plot_path)
         print(f"Training progress plot saved to {plot_path}")
         
     except KeyboardInterrupt:
         print("\nTraining interrupted by user. Saving model...")
-        interrupted_path = 'saved_models/qnetwork_narde_interrupted.pt'
+        interrupted_path = 'saved_models/decomposeddqn_narde_interrupted.pt'
         torch.save(agent.model.network.state_dict(), interrupted_path)
         print(f"Model saved to {interrupted_path}")
     except Exception as e:

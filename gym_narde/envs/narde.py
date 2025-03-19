@@ -14,481 +14,387 @@ import numpy as np
 
 
 def rotate_board(board):
-    # Rotates Black's perspective to White's and vice versa
+    """
+    Rotate Black's perspective to White's and vice versa:
+      - The first 12 points become the last 12 (negated),
+      - The last 12 points become the first 12 (negated).
+      - White's checkers become Black's (positive->negative) and vice versa.
+    """
     rotated = np.concatenate((-board[12:], -board[:12])).astype(np.int32)
     return rotated
 
 
 class Narde:
+    """
+    A simplified Long Nardy game in "White-only perspective."
+    After White's turn, we rotate so that Black also sees itself as 'White.'
+    """
+
     def __init__(self):
-        """Initialize a new game of Narde."""
-        # Initialize the board with White's checkers on point 24 (index 23)
-        # and Black's checkers on point 12 (index 11)
+        # 24 points on the board
         self.board = np.zeros(24, dtype=np.int32)
-        self.board[23] = 15  # White's starting position
-        self.board[11] = -15  # Black's starting position
-        
-        # Initialize borne off counters
+        # White starts with 15 on point 24 (index 23),
+        # Black starts with 15 on point 12 (index 11), stored as negative.
+        self.board[23] = 15   # White
+        self.board[11] = -15  # Black
+
+        # Borne-off counters
         self.borne_off_white = 0
         self.borne_off_black = 0
-        
-        # Initialize first turn flags
-        self.first_turn_white = True
-        self.first_turn_black = True
-        
-        # White always moves first
+
+        # Current player: +1 means "White" in the current perspective
         self.current_player = 1
 
-    def get_perspective_board(self, current_player):
-        return self.board.copy()
+        # Dice can be 2 or 4 values if doubles
+        self.dice = []
 
-    def execute_rotated_move(self, move, player=1):
-        """Execute a move from the current player's perspective.
+        # Track how many head moves have been made *this turn*
+        self.head_moves_this_turn = 0
         
-        Args:
-            move (tuple): (from_pos, to_pos) or (from_pos, 'off') for bearing off
-            player (int): 1 for White, -1 for Black
+        # For compatibility with tests
+        self.first_turn = True
+        self.started_with_full_head = True
+        
+        # Store the initial head count at the start of the turn
+        self.head_count_at_turn_start = 15
+        
+        # Initialize the turn
+        self.start_turn()
+
+    def start_turn(self):
         """
-        from_pos, to_pos = move
-        
-        # Update first turn flags
-        if player == 1:
-            self.first_turn_white = False
-        else:
-            self.first_turn_black = False
-        
-        # Special cases for tests
-        if player == -1:
-            # Special case for test_execute_rotated_move_black in TestNarde
-            if move == (11, 10):
-                self.board[11] = -14
-                self.board[10] = -1
-                return
-            elif move == (18, 'off') and self.board[18] == -1:
-                self.board[18] = 0
-                self.borne_off_black += 1
-                return
-            
-            # Special case for test_move_execution_perspective_black
-            if move == (23, 19):
-                self.board[11] = -14
-                self.board[7] = -1
-                return
-            
-            # Special case for test_subsequent_moves
-            if move == (23, 17) and self.board[17] == 1:
-                self.board[11] = -14
-                self.board[5] = -1
-                return
-            
-            # Special case for test_black_move_sequence
-            if move == (23, 21) and self.board[11] == -15 and self.board[16] != 1:
-                self.board[11] = -14
-                self.board[9] = -1
-                return
-            elif move == (21, 19) and self.board[9] == -1:
-                self.board[9] = 0
-                self.board[7] = -1
-                return
-            elif move == (23, 17) and self.board[11] == -14 and self.board[7] == -1 and self.board[9] == 0:
-                self.board[11] = -13
-                self.board[5] = -1
-                return
-            
-            # Special case for test_alternating_player_moves
-            if move == (23, 21) and self.board[21] == 1:
-                self.board[11] = -14
-                self.board[9] = -1
-                return
-            elif move == (21, 19) and self.board[19] == 1:
-                self.board[9] = 0
-                self.board[7] = -1
-                return
-            
-            # Special case for test_move_translation_black_to_white
-            if move == (23, 17) and self.board[11] == -15:
-                self.board[11] = -14
-                self.board[5] = -1
-                return
-            
-            # Special case for test_mixed_move_sequence
-            if move == (23, 21) and self.board[21] == 1:
-                self.board[11] = -14
-                self.board[9] = -1
-                return
-            
-            # Special case for test_move_sequences_parametrized
-            if move == (23, 21) and self.board[11] == -15 and player == -1 and self.board[9] == 0:
-                self.board[11] = -14
-                self.board[9] = -1
-                return
-            elif move == (23, 19) and self.board[11] == -14 and self.board[9] == -1 and player == -1:
-                self.board[11] = -13
-                self.board[7] = -1
-                return
-            elif move == (23, 17) and self.board[11] == -13 and player == -1:
-                # This is the third move in the sequence, we need to match the expected board state exactly
-                # Directly set the board to match the expected state in the test
-                self.board = np.zeros(24, dtype=np.int32)
-                self.board[11] = -12  # Ensure this is exactly -12, not -14
-                self.board[9] = -1
-                self.board[7] = -1
-                self.board[5] = -1
-                self.board[23] = 15
-                self.board[0] = 0  # Ensure position 0 is 0, not 1
-                return
-            
-            # Special case for test_complex_dice_sequence
-            if move == (23, 18) and self.board[17] == 1:
-                self.board[11] = -14
-                self.board[6] = -1
-                return
-            
-            # Special case for test_bearing_off_black in TestPlayerPerspective
-            if move == (0, 'off') and self.board[12] == -15:
-                self.board[12] = -14
-                self.borne_off_black += 1
-                return
-            
-            # Special case for test_dice_moves_black_perspective
-            if move == (23, 18) and self.board[11] == -15:
-                self.board[11] = -14
-                self.board[6] = -1
-                return
-            
-            # Special case for test_sequence_rotation
-            if move == (23, 21) and self.board[16] == 1:
-                self.board[11] = -14
-                self.board[9] = -1
-                return
-            elif move == (21, 20) and self.board[9] == -1:
-                self.board[9] = 0
-                self.board[8] = -1
-                return
-            
-            # Special case for test_bearing_off_black in TestDiceRollMoves
-            if to_pos == 'off' and from_pos == 0 and np.sum(np.abs(self.board[self.board < 0])) == 15:
-                # This is for the test_bearing_off_black test in TestDiceRollMoves
-                # We need to decrement the count of black pieces
-                self.board[12] = -2  # Adjust the count to match the test's expectation
-                self.borne_off_black += 1
-                return
-            
-            # For Black's moves, we need to rotate positions
-            if to_pos == 'off':
-                # For bearing off, only rotate from_pos
-                from_pos = 23 - from_pos
-            else:
-                # For regular moves, rotate both positions
-                from_pos = 23 - from_pos
-                to_pos = 23 - to_pos
-        
-        # Handle bearing off
-        if to_pos == 'off':
-            self.board[from_pos] -= player
-            if player == 1:
-                self.borne_off_white += 1
-            else:
-                self.borne_off_black += 1
-            return
-        
-        # Update board state
-        self.board[from_pos] -= player
-        self.board[to_pos] += player
-
-    def get_valid_moves(self, dice, player=1, **kwargs):
-        """Get all valid moves for the current player.
-
-        Args:
-            dice (list): List of dice values
-            player (int or str, optional): 1 or 'white' for White, -1 or 'black' for Black. Defaults to 1.
-            **kwargs: Additional keyword arguments for compatibility (e.g., current_player)
-
-        Returns:
-            list: List of valid moves as tuples (from_pos, to_pos)
+        Reset per-turn counters and update turn-start state.
+        This method should be called at the beginning of each turn.
         """
-        valid_moves = []
-
-        # Handle current_player parameter if provided
-        if 'current_player' in kwargs:
-            player = kwargs['current_player']
-
-        # Convert player to int if it's a string
-        if isinstance(player, str):
-            player = 1 if player.lower() == 'white' else -1
-
-        # Special case for first turn with doubles
-        if self.first_turn_white and player == 1 and len(dice) == 2 and dice[0] == dice[1]:
-            # Only allow head moves on first turn with doubles
-            if self.board[23] == 15:  # All pieces still at starting position
-                if dice[0] in [3, 4, 6]:  # Special doubles 3, 4, or 6
-                    return [(23, 23 - dice[0])] * 2  # Allow two moves
-                return [(23, 23 - dice[0])]  # Only one move for other doubles
-
-        if self.first_turn_black and player == -1 and len(dice) == 2 and dice[0] == dice[1]:
-            # Only allow head moves on first turn with doubles
-            if self.board[11] == -15:  # All pieces still at starting position
-                if dice[0] in [3, 4, 6]:  # Special doubles 3, 4, or 6
-                    return [(11, 11 - dice[0])] * 2  # Allow two moves
-                return [(11, 11 - dice[0])]  # Only one move for other doubles
-
-        # Check each position for pieces of the current player
-        for pos in range(24):
-            if self.board[pos] * player > 0:  # Found a piece of current player
-                for die in dice:
-                    target_pos = pos - die if player == 1 else pos + die
-                    if target_pos < 0 or target_pos >= 24:
-                        # Check if bearing off is allowed
-                        if self.can_bear_off(pos, player):
-                            valid_moves.append((pos, 'off'))
-                        continue
-
-                    # Check if move is valid
-                    if self.validate_move((pos, target_pos), [die], player):
-                        valid_moves.append((pos, target_pos))
-
-        return valid_moves
-
-    def validate_move(self, move, dice, player=1, **kwargs):
-        """Validate if a move is legal given the current dice roll.
+        # Reset head moves for the new turn
+        self.head_moves_this_turn = 0
         
-        Args:
-            move (tuple): (from_pos, to_pos) or (from_pos, 'off') for bearing off
-            dice (list): List of dice values
-            player (int): 1 for White, -1 for Black
-            **kwargs: Additional keyword arguments for compatibility
-            
-        Returns:
-            bool: True if move is valid, False otherwise
+        # Store the head count at the start of the turn
+        self.head_count_at_turn_start = self.board[23]
+
+    def rotate_board_for_next_player(self):
         """
-        # Handle current_player parameter if provided
-        if 'current_player' in kwargs:
-            player = kwargs['current_player']
-        
-        from_pos, to_pos = move
-        
-        # Handle bearing off
-        if to_pos == 'off':
-            return self.validate_bearing_off(from_pos, dice)
-        
-        # Check if there's a piece to move
-        if self.board[from_pos] * player <= 0:
-            return False
-        
-        # Check if target position is within bounds
-        if to_pos < 0 or to_pos >= 24:
-            return False
-        
-        # Check if target position is not occupied by opponent
-        if self.board[to_pos] * player < 0:
-            return False
-        
-        # Check if move uses one of the dice values
-        move_distance = abs(from_pos - to_pos)
-        return move_distance in dice
-
-    def validate_bearing_off(self, from_pos, dice):
-        """Validate if bearing off is legal.
-        
-        Args:
-            from_pos (int): Position to bear off from
-            dice (list): List of dice values
-            
-        Returns:
-            bool: True if bearing off is valid, False otherwise
+        Rotate the board so that the *other* player is now in White's seat.
+        Also swap borne-off counts. Then flip current_player = -current_player.
+        Reset any per-turn counters (like head_moves_this_turn).
         """
-        # For bearing off, the die value must be greater than or equal to the distance to the edge
-        distance = from_pos + 1
-        return any(d >= distance for d in dice)
+        self.board = rotate_board(self.board)
+        self.borne_off_white, self.borne_off_black = self.borne_off_black, self.borne_off_white
 
-    def can_bear_off(self, pos, player=1):
-        """Check if a piece can be borne off from the given position.
-
-        Args:
-            pos (int): Position to check
-            player (int or str, optional): 1 or 'white' for White, -1 or 'black' for Black. Defaults to 1.
-
-        Returns:
-            bool: True if bearing off is allowed, False otherwise
-        """
-        if isinstance(player, str):
-            player = 1 if player.lower() == 'white' else -1
-
-        # White can only bear off from positions 0-5, Black from 18-23
-        valid_range = range(6) if player == 1 else range(18, 24)
-        if pos not in valid_range:
-            return False
-
-        # Check if all pieces are in the home board
-        for check_pos in range(24):
-            if self.board[check_pos] * player > 0:  # Found a piece of current player
-                if check_pos not in valid_range:
-                    return False
-
-        return True
-
-    def _validate_head_moves(self, moves, roll, first_turn, head_pos):
-        """Validate moves according to the head rule.
+        self.current_player *= -1
         
-        Args:
-            moves (list): List of moves to validate
-            roll (list): List of dice values
-            first_turn (bool): Whether it's the player's first turn
-            head_pos (int): Position of the head for the current player
-            
-        Returns:
-            list: List of valid moves
-        """
-        # Head rule logic using current player's perspective
-        # According to Rule 5: Only 1 checker may leave the head per turn.
-        # With an exception on the first turn for doubles 3, 4, or 6.
-        if first_turn and sorted(roll) in [[3,3], [4,4], [6,6]]:
-            max_head_moves = 2  # Special case for first turn with specific doubles
-        else:
-            max_head_moves = 1  # Standard case: 1 checker from head per turn
-            
-        # Apply the head rule filtering
-        allowed_moves = []
-        head_moves_count = 0
-        for move in moves:
-            if move[0] == head_pos:
-                if head_moves_count < max_head_moves:
-                    allowed_moves.append(move)
-                    head_moves_count += 1
-            else:
-                allowed_moves.append(move)
-        return allowed_moves
-
-    def _execute_move(self, move, current_player):
-        from_pos, to_pos = move
-
-        if to_pos == 'off':
-            if current_player == 1:  # White
-                self.board[from_pos] -= 1
-                self.borne_off_white += 1
-            else:  # Black
-                self.board[from_pos] += 1
-                self.borne_off_black += 1
-        else:
-            # Move the checker
-            if current_player == 1:  # White
-                self.board[from_pos] -= 1
-                self.board[to_pos] += 1
-            else:  # Black
-                self.board[from_pos] += 1
-                self.board[to_pos] -= 1
-
-    def _violates_block_rule(self, board):
-        """
-        Checks whether the board contains a contiguous block of 6 or more checkers
-        that would trap all opponent checkers. A block is illegal if there are no
-        opponent checkers anywhere on the board (not just ahead of the block).
-        """
-        # Look for continuous blocks of White's checkers (positive values)
-        i = 0
-        while i < 24:
-            # Find start of a block of White's checkers
-            if board[i] >= 2:  # Must be at least 2 checkers to form a block
-                block_start = i
-                block_length = 1  # Count consecutive points, not total checkers
-                
-                # Find end of continuous block
-                j = i + 1
-                while j < 24 and board[j] >= 2:
-                    block_length += 1
-                    j += 1
-                    
-                # Check if block is 6 or more consecutive points
-                if block_length >= 6:
-                    # Check if any Black checkers exist anywhere
-                    has_opponent = False
-                    for k in range(24):
-                        if board[k] < 0:  # Black piece found
-                            has_opponent = True
-                            break
-                    
-                    # If no opponent checkers anywhere, this violates Rule 8
-                    if not has_opponent:
-                        return True
-                        
-                i = j  # Move past the end of this block
-            else:
-                i += 1  # No block at this position, move to next
-                
-        # Look for continuous blocks of Black's checkers (negative values)
-        i = 0
-        while i < 24:
-            # Find start of a block of Black's checkers
-            if board[i] <= -2:  # Must be at least 2 checkers to form a block
-                block_start = i
-                block_length = 1
-                
-                # Find end of continuous block
-                j = i + 1
-                while j < 24 and board[j] <= -2:
-                    block_length += 1
-                    j += 1
-                    
-                # Check if block is 6 or more consecutive points
-                if block_length >= 6:
-                    # Check if any White checkers exist anywhere
-                    has_opponent = False
-                    for k in range(24):
-                        if board[k] > 0:  # White piece found
-                            has_opponent = True
-                            break
-                    
-                    # If no opponent checkers anywhere, this violates Rule 8
-                    if not has_opponent:
-                        return True
-                        
-                i = j  # Move past the end of this block
-            else:
-                i += 1  # No block at this position, move to next
-                
-        return False
+        # Start a new turn for the next player
+        self.start_turn()
 
     def is_game_over(self):
-        """Check if the game is over.
-        
-        Returns:
-            bool: True if the game is over, False otherwise
-        """
-        return self.borne_off_white == 15 or self.borne_off_black == 15
+        """Return True if either side has borne off all 15 checkers."""
+        return (self.borne_off_white == 15) or (self.borne_off_black == 15)
 
     def get_winner(self):
-        """Get the winner of the game.
-        
-        Returns:
-            int: 1 for White, -1 for Black, None if game is not over
-        """
+        """Return +1 if White won, -1 if Black won, else None if not finished."""
         if self.borne_off_white == 15:
             return 1
         elif self.borne_off_black == 15:
             return -1
         return None
 
-    def _can_bear_off(self, current_player):
-        """Check if the current player can bear off pieces.
-        
-        A player can bear off when all their remaining pieces are in their home board
-        (last 6 positions from their perspective).
-        
-        Args:
-            current_player (int): 1 for White, -1 for Black
-            
-        Returns:
-            bool: True if the player can bear off, False otherwise
+    def get_valid_moves(self, dice=None, head_moves_count=None):
         """
-        if current_player == 1:  # White
-            # Check if any White pieces are outside home board (positions 0-17)
-            for i in range(18):
-                if self.board[i] > 0:
-                    return False
+        Return all valid moves from the perspective of self.current_player==+1 (the 'White' seat).
+        Moves are (from_pos, to_pos) or (from_pos, 'off') for bearing off.
+        
+        This is a pure function that doesn't modify any game state.
+        
+        Parameters:
+        - dice: The dice values to use. If None, uses self.dice.
+        - head_moves_count: The number of head moves already made this turn.
+                           If None, uses self.head_moves_this_turn.
+        
+        Returns:
+        - A list of valid moves as tuples (from_pos, to_pos) or (from_pos, 'off').
+        """
+        if dice is None:
+            dice = self.dice
+            
+        if head_moves_count is None:
+            head_moves_count = self.head_moves_this_turn
+
+        if not dice:
+            return []
+
+        moves = []
+        # Find all points with White checkers (board > 0)
+        white_positions = np.where(self.board > 0)[0]
+        if len(white_positions) == 0:
+            return []
+
+        # Check if White can bear off (all checkers in [0..5])
+        can_bear_off = (np.sum(self.board[6:] > 0) == 0)
+
+        # First, determine if we can move from the head (position 23)
+        # By default, 1 is allowed
+        max_head_moves = 1
+
+        # If we had 15 at the start *and* we rolled doubles in [3,4,6] on first turn, allow 2
+        had_full_head_at_turn_start = (self.head_count_at_turn_start == 15)
+        if had_full_head_at_turn_start and self.first_turn and self.started_with_full_head:
+            # Are the dice double(3,4,6)?
+            unique_vals = set(dice)
+            if len(unique_vals) == 1 and len(dice) >= 2:
+                val = list(unique_vals)[0]
+                if val in [3, 4, 6]:
+                    max_head_moves = 2
+
+        # Check if we've already used up our head moves
+        can_move_from_head = head_moves_count < max_head_moves
+
+        for d in dice:
+            for from_pos in white_positions:
+                # Skip head moves if we've already used our allowed moves
+                if from_pos == 23 and not can_move_from_head:
+                    continue
+                    
+                # Attempt a "regular move" = from_pos - d
+                to_pos = from_pos - d
+                if to_pos >= 0:
+                    # Make sure no opponent checkers are blocking
+                    if self.board[to_pos] >= 0:
+                        # Potentially valid
+                        moves.append((from_pos, to_pos))
+
+                # If can bear off, see if from_pos < 6
+                # Then a move of (from_pos, 'off') might be valid
+                if can_bear_off and from_pos < 6:
+                    # Two conditions: exact roll OR higher roll if no pieces behind
+                    # 1) exact
+                    if d == (from_pos + 1):
+                        moves.append((from_pos, 'off'))
+                    # 2) higher + no pieces behind
+                    elif d > (from_pos + 1):
+                        # Check if there's no checker behind from_pos
+                        if np.sum(self.board[:from_pos] > 0) == 0:
+                            moves.append((from_pos, 'off'))
+
+        # Filter out any moves that cause an illegal 6-prime block that traps the opponent
+        valid_moves = []
+        for mv in moves:
+            if not self._would_violate_block_rule(mv):
+                valid_moves.append(mv)
+
+        # Special case for non-doubles with exactly two possible moves
+        if len(valid_moves) == 2 and len(dice) == 2 and dice[0] != dice[1]:
+            smaller_die = min(dice)
+            larger_die = max(dice)
+            
+            # Find the moves corresponding to each die
+            smaller_die_moves = []
+            larger_die_moves = []
+            
+            for move in valid_moves:
+                from_pos, to_pos = move
+                if to_pos == 'off':
+                    # For bearing off, we need to check which die is being used
+                    distance = from_pos + 1
+                    if smaller_die >= distance and larger_die >= distance:
+                        # If both dice can be used, the smaller one would be used
+                        smaller_die_moves.append(move)
+                    elif larger_die >= distance:
+                        larger_die_moves.append(move)
+                else:
+                    # For regular moves
+                    distance = abs(from_pos - to_pos)
+                    if distance == smaller_die:
+                        smaller_die_moves.append(move)
+                    elif distance == larger_die:
+                        larger_die_moves.append(move)
+            
+            # If we have exactly one move for each die
+            if len(smaller_die_moves) == 1 and len(larger_die_moves) == 1:
+                smaller_move = smaller_die_moves[0]
+                
+                # Simulate the smaller die move on a copy of the board
+                board_copy = np.copy(self.board)
+                borne_off_white_copy = self.borne_off_white
+                
+                # Apply the smaller move to the copy
+                from_pos, to_pos = smaller_move
+                board_copy[from_pos] -= 1
+                if to_pos == 'off':
+                    borne_off_white_copy += 1
+                else:
+                    board_copy[to_pos] += 1
+                
+                # Create a temporary game state to check for valid moves after the smaller move
+                temp_game = Narde()
+                temp_game.board = board_copy
+                temp_game.borne_off_white = borne_off_white_copy
+                temp_game.borne_off_black = self.borne_off_black
+                temp_game.current_player = self.current_player
+                temp_game.first_turn = self.first_turn
+                temp_game.started_with_full_head = self.started_with_full_head
+                temp_game.head_count_at_turn_start = self.head_count_at_turn_start
+                temp_game.head_moves_this_turn = head_moves_count + (1 if from_pos == 23 else 0)
+                
+                # Check if there are valid moves with the larger die after the smaller die move
+                remaining_dice = [larger_die]
+                next_valid_moves = temp_game.get_valid_moves(remaining_dice)
+                
+                # If no valid moves remain after using the smaller die,
+                # only return the move with the larger die
+                if len(next_valid_moves) == 0:
+                    return larger_die_moves
+
+        # Sort them nicely
+        def move_sort_key(m):
+            f, t = m
+            if t == 'off':
+                return (f, 9999)
+            else:
+                return (f, t)
+        valid_moves.sort(key=move_sort_key)
+
+        return valid_moves
+
+    def execute_move(self, move, dice=None):
+        """
+        Execute a single move (from_pos, to_pos or (from_pos, 'off')).
+        Return True if successful, False otherwise.
+        """
+        if dice is None:
+            dice = self.dice
+
+        if not dice:
+            return False
+
+        # Validate the move using get_valid_moves (now safe to call as it's a pure function)
+        valid_moves = self.get_valid_moves(dice)
+        if move not in valid_moves:
+            return False
+            
+        from_pos, to_pos = move
+        
+        # For bearing off
+        if to_pos == 'off':
+            # Calculate distance to edge
+            distance = from_pos + 1
+            
+            # Find the appropriate die to use
+            usable_dice = [d for d in dice if d >= distance]
+            if usable_dice:
+                die_used = min(usable_dice)
+            else:
+                die_used = min(dice)
+                
+            # Bear off
+            self.board[from_pos] -= 1
+            self.borne_off_white += 1
+        else:
+            # For regular moves
+            # Execute the move
+            self.board[from_pos] -= 1
+            self.board[to_pos] += 1
+            
+            # If moving off the head (point 24→index 23), track it
+            if from_pos == 23:
+                self.head_moves_this_turn += 1
+
+            # Use the die
+            die_used = abs(from_pos - to_pos)
+
+        # Remove that die from dice
+        if die_used in dice:
+            dice.remove(die_used)
+
+        return True
+
+    def _would_violate_block_rule(self, move):
+        """
+        Temporarily apply the move to the board, check if it creates
+        an illegal 6-prime that fully traps all 15 opposing checkers,
+        then revert. If it does, return True (violates the rule).
+        """
+        from_pos, to_pos = move
+
+        # Save board
+        saved = self.board.copy()
+        saved_borne_white = self.borne_off_white
+        saved_borne_black = self.borne_off_black
+
+        # Simulate
+        if to_pos == 'off':
+            saved[from_pos] -= 1
+            saved_borne_white += 1
+        else:
+            saved[from_pos] -= 1
+            saved[to_pos] += 1
+
+        # Check if we now have a contiguous 6-block that *completely* traps the opponent's 15 checkers.
+        # Official rule: "Fully trapping all 15 opponent checkers is disallowed, even momentarily."
+        if self._violates_block_rule(saved, saved_borne_white, saved_borne_black):
             return True
-        else:  # Black
-            # Check if any Black pieces are outside home board (positions 6-23)
-            for i in range(6):
-                if self.board[i] < 0:
-                    return False
-            return True
+        return False
+
+    def _violates_block_rule(self, board, bo_white, bo_black):
+        """
+        True if there's a 6+ prime that leaves no opponent checkers in front of it.
+        Official Nardy rule #8: "You cannot form a contiguous block of 6 points if
+        that block completely traps all 15 of the opponent's checkers."
+        """
+        # If the opponent is all borne off, no violation
+        # or if you haven't pinned *all* of them behind the block
+        # We do a simpler approach: we find any contiguous 6 points with >=2 checkers
+        # If the total black checkers are behind that block with no black checkers ahead, it's illegal.
+
+        # Count total black checkers on board
+        black_on_board = -np.sum(board[board < 0])  # negative counts
+        black_total = black_on_board + bo_black
+        if black_total < 15:
+            # Means White hasn't placed them properly or there's some mismatch, but let's not fail.
+            black_total = 15
+
+        # If black_on_board == 0, there's no block violation possible (all borne or behind the head).
+        if black_on_board == 0:
+            return False
+
+        # Look for a 6+ prime of White checkers (board[i]>=2).
+        i = 0
+        while i < 24:
+            if board[i] >= 2:
+                length = 1
+                j = i + 1
+                while j < 24 and board[j] >= 2:
+                    length += 1
+                    j += 1
+                # Now we have a block [i.. j-1] of length 'length'
+                if length >= 6:
+                    # If *all* black checkers remain behind that block with no black checkers ahead,
+                    # that means black is fully trapped. By rule #8, that's illegal even momentarily.
+                    # "Behind that block" = any black checkers on points < i
+                    black_behind = -np.sum(board[:i][board[:i] < 0])
+                    if black_behind == black_on_board:
+                        # i.e. all black checkers are behind or on i, so they're trapped
+                        return True
+                i = j
+            else:
+                i += 1
+
+        return False
+        
+    def print_board(self):
+        """
+        Print a human-readable representation of the board.
+        Shows White checkers as positive numbers, Black as negative.
+        """
+        print("\nBoard State:")
+        print("=" * 50)
+        print("Index: Position | Count")
+        print("-" * 50)
+        for i in range(24):
+            if self.board[i] != 0:
+                color = "White" if self.board[i] > 0 else "Black"
+                count = abs(self.board[i])
+                print(f"{i:2d}: Point {24-i:2d} | {count:2d} {color} checker{'s' if count > 1 else ''}")
+        print("-" * 50)
+        print(f"White checkers borne off: {self.borne_off_white}")
+        print(f"Black checkers borne off: {self.borne_off_black}")
+        print("=" * 50)
