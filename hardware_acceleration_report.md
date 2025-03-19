@@ -13,13 +13,15 @@ This report analyzes the performance benefits of hardware acceleration for MuZer
 
 - **NVIDIA T4 GPU**:
   - JAX with XLA demonstrates excellent performance for matrix operations (up to 28.88x speedup)
-  - PyTorch with CUDA achieves strong acceleration for neural networks (up to 26.57x speedup)
+  - PyTorch with CUDA achieves exceptional acceleration for neural networks (up to 42.61x speedup)
   - T4 GPU provides significantly higher acceleration than M-series chips, especially at large batch sizes
-  - Both frameworks show crossover points where GPU becomes more efficient than CPU
+  - The larger MuZero models benefit more from GPU acceleration, with speedups increasing from 28.84x to 42.61x
+  - Environment operations show mixed results, with board rotation achieving up to 3.51x speedup
 
 **Recommendations:**
 - **For Mac systems**: Use PyTorch with MPS for MuZero training with batch sizes ≥ 512
 - **For NVIDIA GPU systems**: Use JAX with XLA for matrix/tensor operations and PyTorch with CUDA for neural networks
+- Use larger models (512+ hidden dim) on GPUs to maximize acceleration benefits
 - Consider hybrid approaches that use CPU for small batch operations and GPU for larger ones
 
 ## Benchmark Results
@@ -124,6 +126,106 @@ PyTorch with CUDA demonstrated excellent performance for matrix operations, with
 
 PyTorch with CUDA achieved exceptional performance for neural networks, especially at larger batch sizes. The crossover point occurred at batch size 16, and the acceleration increased dramatically for larger batches, reaching a maximum speedup of 26.57x at batch size 4096.
 
+### 4. NVIDIA T4 GPU: MuZero Network Performance
+
+#### Standard MuZero Model (128 hidden dim, 64 latent dim)
+
+**Forward Pass Performance**
+
+| Batch Size | CPU Time (s) | CUDA Time (s) | Speedup |
+|------------|--------------|---------------|---------|
+| 1 | 0.000333 | 0.000584 | 0.57x |
+| 8 | 0.000306 | 0.000447 | 0.68x |
+| 32 | 0.000423 | 0.000406 | 1.04x |
+| 128 | 0.000901 | 0.000391 | 2.30x |
+| 512 | 0.002375 | 0.000411 | 5.78x |
+| 1024 | 0.005564 | 0.000379 | 14.69x |
+| 2048 | 0.010868 | 0.000542 | 20.05x |
+| 4096 | 0.020908 | 0.000725 | 28.84x |
+
+**Recurrent Inference Performance**
+
+| Batch Size | CPU Time (s) | CUDA Time (s) | Speedup |
+|------------|--------------|---------------|---------|
+| 1 | 0.000397 | 0.000636 | 0.62x |
+| 8 | 0.000504 | 0.000655 | 0.77x |
+| 32 | 0.000639 | 0.000662 | 0.97x |
+| 128 | 0.001074 | 0.000669 | 1.61x |
+| 512 | 0.002704 | 0.000707 | 3.82x |
+| 1024 | 0.005374 | 0.000674 | 7.97x |
+| 2048 | 0.010541 | 0.000804 | 13.12x |
+| 4096 | 0.023256 | 0.000725 | 32.09x |
+
+The standard MuZero model shows excellent acceleration with CUDA, particularly at larger batch sizes. The crossover point for forward passes is around batch size 32, with a maximum speedup of 28.84x at batch size 4096. For recurrent inference, the crossover is around batch size 128, with a maximum speedup of 32.09x at batch size 4096.
+
+#### Large MuZero Model (512 hidden dim, 256 latent dim)
+
+**Forward Pass Performance**
+
+| Batch Size | CPU Time (s) | CUDA Time (s) | Speedup |
+|------------|--------------|---------------|---------|
+| 1 | 0.000516 | 0.000592 | 0.87x |
+| 8 | 0.000775 | 0.000495 | 1.57x |
+| 32 | 0.001800 | 0.000525 | 3.43x |
+| 128 | 0.005990 | 0.000697 | 8.60x |
+| 512 | 0.019018 | 0.000825 | 23.07x |
+| 1024 | 0.035678 | 0.001205 | 29.60x |
+| 2048 | 0.047974 | 0.001455 | 32.96x |
+| 4096 | 0.122292 | 0.002899 | 42.19x |
+
+**Recurrent Inference Performance**
+
+| Batch Size | CPU Time (s) | CUDA Time (s) | Speedup |
+|------------|--------------|---------------|---------|
+| 1 | 0.000794 | 0.000668 | 1.19x |
+| 8 | 0.001095 | 0.000607 | 1.81x |
+| 32 | 0.001895 | 0.000705 | 2.69x |
+| 128 | 0.004567 | 0.000656 | 6.97x |
+| 512 | 0.015552 | 0.000710 | 21.91x |
+| 1024 | 0.028981 | 0.000799 | 36.26x |
+| 2048 | 0.055714 | 0.001780 | 31.30x |
+| 4096 | 0.148378 | 0.003482 | 42.61x |
+
+The larger MuZero model demonstrates even more dramatic acceleration benefits. The crossover point for forward passes is at batch size 8, and the acceleration scales exceptionally well with batch size, reaching a maximum of 42.19x at batch size 4096. For recurrent inference, acceleration is beneficial from the smallest batch size (1.19x at batch size 1), scaling to a remarkable 42.61x speedup at batch size 4096.
+
+### 5. NVIDIA T4 GPU: Narde Environment Operations
+
+#### Board Rotation
+
+| Batch Size | NumPy (s) | PyTorch CPU (s) | PyTorch CUDA (s) | CPU Speedup | CUDA Speedup |
+|------------|-----------|-----------------|------------------|-------------|-------------|
+| 1 | 0.000049 | 0.000087 | 0.000103 | 0.57x | 0.48x |
+| 64 | 0.000024 | 0.000043 | 0.000091 | 0.55x | 0.26x |
+| 256 | 0.000037 | 0.000050 | 0.000096 | 0.73x | 0.39x |
+| 1024 | 0.000071 | 0.000096 | 0.000095 | 0.74x | 0.75x |
+| 4096 | 0.000207 | 0.000362 | 0.000089 | 0.57x | 2.33x |
+| 8192 | 0.000489 | 0.000841 | 0.000139 | 0.58x | 3.51x |
+
+Board rotation operations show meaningful CUDA acceleration only at larger batch sizes (≥ 4096), with a maximum speedup of 3.51x at batch size 8192. For smaller batches, the CPU implementation is more efficient due to memory transfer overhead.
+
+#### Block Rule Checking
+
+| Batch Size | NumPy (s) | PyTorch CPU (s) | PyTorch CUDA (s) | CPU Speedup | CUDA Speedup |
+|------------|-----------|-----------------|------------------|-------------|-------------|
+| 1 | 0.000110 | 0.000830 | 0.001611 | 0.13x | 0.07x |
+| 64 | 0.000086 | 0.000833 | 0.001770 | 0.10x | 0.05x |
+| 256 | 0.000181 | 0.000883 | 0.001547 | 0.20x | 0.12x |
+| 1024 | 0.000262 | 0.000942 | 0.001429 | 0.28x | 0.18x |
+| 4096 | 0.001103 | 0.002366 | 0.001685 | 0.47x | 0.65x |
+| 8192 | 0.002762 | 0.004282 | 0.001731 | 0.65x | 1.60x |
+
+Block rule checking shows minimal CUDA advantage, with a crossover point at batch size 4096 and modest maximum speedup of 1.60x at batch size 8192. The PyTorch CPU implementation is significantly slower than NumPy for this operation.
+
+#### Get Valid Actions
+
+| Batch Size | NumPy (s) | PyTorch CPU (s) | PyTorch CUDA (s) | CPU Speedup | CUDA Speedup |
+|------------|-----------|-----------------|------------------|-------------|-------------|
+| 1 | 0.000077 | 0.004180 | 0.011637 | 0.02x | 0.01x |
+| 64 | 0.003084 | 0.189867 | 0.572006 | 0.02x | 0.01x |
+| 256 | 0.012554 | 0.823940 | SKIPPED | 0.02x | N/A |
+
+For get_valid_actions, both PyTorch implementations (CPU and CUDA) significantly underperform compared to NumPy. The CUDA implementation is particularly inefficient, being 100x slower than NumPy at small batch sizes. Larger batch sizes were skipped due to the extreme inefficiency.
+
 ## Comparative Analysis: M-series vs T4 GPU
 
 When comparing M-series performance to NVIDIA T4 GPU:
@@ -131,11 +233,14 @@ When comparing M-series performance to NVIDIA T4 GPU:
 | Aspect | M-series (MPS) | T4 GPU (CUDA/XLA) |
 |--------|----------------|-------------------|
 | Max Matrix Op Speedup | 8.17x | 28.88x (JAX/XLA) / 12.80x (PyTorch) |
-| Max Neural Network Speedup | 1.97x | 1.14x (JAX/XLA) / 26.57x (PyTorch) |
-| Crossover Batch Size | ~512 | ~16-256 |
+| Max Neural Network Speedup | 1.97x | 42.61x (PyTorch) |
+| Max Board Rotation Speedup | 8.17x | 3.51x |
+| Crossover Batch Size (NN) | ~512 | ~8-32 |
+| Large Model Performance | Moderate benefit | Exceptional (42x vs 2x) |
+| Environment Operations | Good for board rotation | Mixed results |
 | Framework Suitability | PyTorch preferred | JAX for matrix ops, PyTorch for NN |
 
-The NVIDIA T4 GPU significantly outperforms M-series chips for both matrix operations and neural networks, particularly at larger batch sizes. The T4 also becomes efficient at smaller batch sizes than M-series chips.
+The NVIDIA T4 GPU significantly outperforms M-series chips for neural networks with up to 42x speedup compared to 2x on M-series. For environment operations, M-series sometimes performs better, particularly for board rotation. The T4 also becomes efficient at much smaller batch sizes than M-series chips, especially for larger models.
 
 ## Analysis and Recommendations
 
@@ -143,11 +248,19 @@ The NVIDIA T4 GPU significantly outperforms M-series chips for both matrix opera
 
 1. **Batch Size Threshold**: 
    - M-series: Acceleration beneficial at batch sizes ≥ 512
-   - T4 GPU: Acceleration beneficial at batch sizes ≥ 16-256 depending on operation
+   - T4 GPU: Acceleration beneficial at batch sizes ≥ 8-32 for neural networks, ≥ 4096 for environment operations
 
-2. **Operation Complexity**: More complex operations with higher computational intensity benefit more from hardware acceleration on both platforms.
+2. **Model Size Impact**: 
+   - Larger models (512 hidden dim) show significantly better acceleration on both platforms
+   - T4 GPU benefits dramatically more from larger models (42x vs 28x speedup)
 
-3. **Memory Transfer Overhead**: For small batches, the overhead of transferring data between CPU and GPU memory negates the benefits of hardware acceleration, especially pronounced on M-series.
+3. **Operation Complexity**: 
+   - Neural networks and matrix operations benefit most from GPU acceleration
+   - Environment operations show mixed results, with some better on CPU
+
+4. **Memory Transfer Overhead**: 
+   - For small batches, the overhead of transferring data between CPU and GPU memory negates the benefits
+   - More pronounced on T4 GPU for simple operations like board rotation
 
 ### Framework-Specific Recommendations
 
@@ -160,9 +273,13 @@ The NVIDIA T4 GPU significantly outperforms M-series chips for both matrix opera
 #### For NVIDIA T4 GPU:
 
 1. **Matrix/Tensor Operations**: JAX with XLA provides exceptional performance for large batch sizes
-2. **Neural Networks**: PyTorch with CUDA delivers the best performance for network inference and training
-3. **Batch Size Strategy**: Use batch sizes of 64 or larger for matrix operations and 16 or larger for neural networks
-4. **Mixed Precision**: Consider using FP16/BF16 for even better performance, especially for larger models
+2. **Neural Networks**: PyTorch with CUDA delivers the best performance, especially for larger models
+3. **Environment Operations**: Use CPU for get_valid_actions and smaller batch sizes of board operations
+4. **Batch Size Strategy**: 
+   - Neural networks: Use batch sizes of 8+ for large models, 32+ for standard models
+   - Environment operations: Use batch sizes of 4096+ where GPU acceleration is beneficial
+5. **Mixed Precision**: Implement half-precision (FP16) training for even better performance
+6. **Custom Kernels**: Consider CUDA kernels for operations like get_valid_actions that scale poorly
 
 ## Conclusion
 
@@ -170,11 +287,12 @@ Hardware acceleration offers significant performance benefits for MuZero impleme
 
 For Mac systems, PyTorch with MPS delivers the most consistent performance gains, with up to 2x speedup for large models and batch sizes. The benefits become noticeable at batch sizes of 512 and above.
 
-For NVIDIA T4 GPU systems, both JAX with XLA and PyTorch with CUDA demonstrate exceptional performance. JAX excels at matrix operations (up to 28.88x speedup), while PyTorch delivers outstanding neural network performance (up to 26.57x speedup). These accelerations become effective at much smaller batch sizes compared to M-series chips.
+For NVIDIA T4 GPU systems, both JAX with XLA and PyTorch with CUDA demonstrate exceptional performance. JAX excels at matrix operations (up to 28.88x speedup), while PyTorch delivers outstanding neural network performance (up to 42.61x speedup). These accelerations become effective at much smaller batch sizes compared to M-series chips.
 
 For the optimal MuZero implementation:
 - On Mac systems: Use PyTorch with MPS with larger batch sizes
-- On NVIDIA T4 systems: Consider a hybrid approach using JAX for tensor operations and PyTorch for neural networks
-- For both platforms: Implement dynamic device selection based on batch size
+- On NVIDIA T4 systems: Use PyTorch with CUDA for neural networks, especially larger models
+- For both platforms: Implement dynamic device selection based on operation type and batch size
+- For environment operations: Consider a hybrid approach that uses CPU for some operations and GPU for others
 
-These findings suggest that hardware acceleration can dramatically reduce training time for MuZero agents, with NVIDIA T4 GPUs offering substantially better performance than M-series Macs for both research and production environments. 
+These findings suggest that hardware acceleration can dramatically reduce training time for MuZero agents, with NVIDIA T4 GPUs offering substantially better performance than M-series Macs for neural network operations and large models. The ideal implementation would leverage the strengths of each platform while mitigating their respective weaknesses. 

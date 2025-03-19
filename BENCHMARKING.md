@@ -1,6 +1,6 @@
 # Benchmarking Hardware Acceleration for MuZero Narde
 
-This document summarizes our comprehensive benchmarking of hardware acceleration options for the Narde reinforcement learning environment, specifically targeting Apple Silicon (M-series) chips with Metal Performance Shaders (MPS) support.
+This document summarizes our comprehensive benchmarking of hardware acceleration options for the Narde reinforcement learning environment, targeting both Apple Silicon (M-series) chips with Metal Performance Shaders (MPS) support and NVIDIA GPUs with CUDA support.
 
 ## Scripts Developed
 
@@ -68,11 +68,73 @@ We created several specialized benchmark scripts to evaluate different aspects o
 - Board rotation: 8.17x speedup at batch size 8192
 - Board operations: 84.00x speedup at batch size 8192
 
-## Implementation Created
+### 6. `benchmark_jax_cuda.py`
 
-We developed a complete PyTorch-accelerated implementation of the Narde environment:
+**Purpose**: Evaluate JAX performance with XLA on NVIDIA T4 GPU vs CPU.
 
-### `torch_narde_env.py`
+**Key features**:
+- Tests matrix operations and neural network performance
+- Compares JAX on GPU against NumPy on CPU
+- Uses batched operations across various sizes
+- Tests compilation and execution time separately
+
+**Results**:
+- Matrix operations: Up to 28.88x speedup at batch size 4096
+- Neural networks: Inconsistent performance, with best speedup at batch size 1 (8.53x)
+- Crossover point at batch size 256 for matrix operations
+
+### 7. `pytorch_t4_benchmark.py`
+
+**Purpose**: Benchmark PyTorch on NVIDIA T4 GPU vs CPU for basic operations.
+
+**Key features**:
+- Compares PyTorch with CUDA vs NumPy for matrix operations
+- Evaluates neural network forward passes
+- Measures memory transfer overhead
+- Tests various batch sizes
+
+**Results**:
+- Matrix operations: Up to 12.80x speedup with CUDA at batch size 4096
+- Neural network: Up to 26.57x speedup at batch size 4096
+- CUDA acceleration becomes effective at batch size 64 for matrices and 16 for neural networks
+
+### 8. `benchmark_env_t4_cuda.py`
+
+**Purpose**: Compare environment operations on NVIDIA T4 GPU vs CPU.
+
+**Key features**:
+- Benchmarks board rotation, block rule checking, and action validation
+- Implements automatic test skipping for time-intensive operations
+- Tests both PyTorch CPU and CUDA implementations
+- Includes reporting and visualization functions
+
+**Results**:
+- Board rotation: Up to 3.51x speedup with CUDA at batch size 8192
+- Block rule checking: Up to 1.60x speedup at batch size 8192
+- Get valid actions: CPU outperformed CUDA for all batch sizes
+- Some operations became prohibitively slow at larger batch sizes
+
+### 9. `benchmark_muzero_t4_cuda.py`
+
+**Purpose**: Evaluate MuZero network performance on NVIDIA T4 GPU.
+
+**Key features**:
+- Tests standard (128 hidden dim) and large (512 hidden dim) networks
+- Benchmarks forward passes and recurrent inference
+- Simulates MCTS-like operations
+- Compares model sizes and batch size effects
+
+**Results**:
+- Standard network: Up to 28.84x forward pass speedup, 32.09x recurrent speedup
+- Large network: Up to 42.19x forward pass speedup, 42.61x recurrent speedup
+- Larger model showed greater benefit from GPU acceleration
+- GPU acceleration effective from batch size 8 for large models
+
+## Implementations Created
+
+We developed accelerated implementations of the Narde environment:
+
+### 1. `torch_narde_env.py`
 
 **Purpose**: Provide an MPS-accelerated alternative to the original NumPy-based environment.
 
@@ -82,7 +144,15 @@ We developed a complete PyTorch-accelerated implementation of the Narde environm
 - Implements dynamic device selection based on operation and batch size
 - Optimizes board rotation, block rule checking, and other key operations
 
-This implementation serves as a drop-in replacement for the original environment while leveraging hardware acceleration when beneficial.
+### 2. `cuda_narde_env.py`
+
+**Purpose**: Provide a CUDA-accelerated implementation for NVIDIA GPUs.
+
+**Key features**:
+- Compatible with the Gymnasium interface
+- Optimized for CUDA execution on NVIDIA GPUs
+- Implements efficient batch processing
+- Uses dynamic device selection based on operation characteristics
 
 ## Reports Generated
 
@@ -129,9 +199,41 @@ This implementation serves as a drop-in replacement for the original environment
 - Environment wrapper examples
 - Performance tuning suggestions
 
+### 5. `narde_env_t4_gpu_benchmark_report.md`
+
+**Purpose**: Document benchmarking results for the Narde environment on NVIDIA T4 GPU.
+
+**Contents**:
+- Performance comparison between NumPy, PyTorch CPU, and PyTorch CUDA
+- Tables with execution times and speedup metrics for all operations
+- Analysis of memory transfer overhead
+- Recommendations for batch size thresholds and operation strategies
+
+### 6. `muzero_t4_gpu_benchmark_report.md`
+
+**Purpose**: Analyze MuZero network performance on NVIDIA T4 GPU.
+
+**Contents**:
+- Comparison between standard and large network architectures
+- Forward pass and recurrent inference benchmarks
+- MCTS simulation performance analysis
+- Recommendations for model size and device selection
+
+### 7. `jax_t4_gpu_xla_benchmark_report.md`
+
+**Purpose**: Evaluate JAX with XLA performance on NVIDIA T4 GPU.
+
+**Contents**:
+- Matrix operations and neural network benchmarks
+- Comparison between JAX GPU and NumPy CPU
+- Analysis of compilation and execution time
+- Batch size threshold recommendations
+
 ## Key Findings
 
 Our comprehensive benchmarking revealed several important insights:
+
+### Apple Silicon (M-series) with MPS
 
 1. **Operation-Specific Thresholds**: Each operation has a specific batch size threshold where MPS acceleration becomes beneficial:
    - Board Rotation: ≥ 1024 (8.17x max speedup)
@@ -151,9 +253,31 @@ Our comprehensive benchmarking revealed several important insights:
 
 7. **Memory Transfer Overhead**: For small batches, the overhead of transferring data between CPU and GPU memory negates acceleration benefits.
 
+### NVIDIA T4 GPU with CUDA
+
+1. **Operation-Specific Performance**:
+   - Board Rotation: Effective acceleration (3.51x) at batch sizes ≥ 4096
+   - Block Rule Checking: Modest acceleration (1.60x) at batch sizes ≥ 8192
+   - Get Valid Actions: CPU outperformed GPU across all tested batch sizes
+   - MuZero Networks: Excellent acceleration (up to 42.61x) for large networks
+
+2. **Exceptional Neural Network Performance**: MuZero networks showed much better acceleration on the T4 GPU compared to Apple Silicon, with speedups up to 42x.
+
+3. **Large Model Advantage**: Larger MuZero networks (512 hidden dim) showed significantly better GPU utilization than standard models (128 hidden dim).
+
+4. **JAX vs PyTorch**: Both frameworks showed strong performance, with JAX showing higher maximum speedups for matrix operations but more inconsistent performance for neural networks.
+
+5. **GPU Memory Limitations**: Operations with large batch sizes can be memory-limited on GPUs with less VRAM (16GB on T4).
+
+6. **Kernel Launch Overhead**: Small batch operations are often slower on GPU due to kernel launch overhead.
+
+7. **Skipping Prohibitively Slow Tests**: Some operations like `get_valid_actions` scale so poorly that time limits are needed to skip tests that would take too long.
+
 ## Implementation Recommendations
 
 Based on our findings, we recommend:
+
+### For Apple Silicon (M-series)
 
 1. **Dynamic Device Selection**: Implement conditional logic that selects CPU or MPS based on operation type and batch size.
 
@@ -165,8 +289,139 @@ Based on our findings, we recommend:
 
 5. **Warm-up Operations**: Pre-compile operations with example inputs to avoid compilation overhead.
 
+### For NVIDIA GPUs
+
+1. **Model-Centric Acceleration**: Focus on accelerating neural network operations, which showed the most significant speedups.
+
+2. **CPU Fallback for Environment**: Some environment operations are better on CPU, especially at smaller batch sizes.
+
+3. **Custom CUDA Kernels**: For operations like `get_valid_actions`, consider specialized CUDA kernels for better performance.
+
+4. **Large Batch Processing**: Structure training to use the largest practical batch sizes for maximum GPU utilization.
+
+5. **Mixed Precision Training**: Use FP16/BF16 for further performance improvements on GPU.
+
+## Guidelines for Future Hardware Benchmarking
+
+When benchmarking new hardware accelerators (e.g., NVIDIA A100, Google TPUs), follow these structured guidelines:
+
+### 1. Benchmark Setup and Preparation
+
+**Hardware Configuration**:
+- Document exact hardware specifications (model, memory, connectivity)
+- Record software environment (driver versions, runtime libraries)
+- Note any thermal or power constraints
+
+**Baseline Establishment**:
+- Run CPU-only benchmarks as a consistent baseline
+- Use identical operations and batch sizes across all platforms
+- Ensure timing methods are consistent and accurate
+
+**Warm-up Considerations**:
+- Include warm-up iterations to ensure JIT compilation is complete
+- Separate compilation time from execution time when using XLA
+- Account for frequency scaling and thermal throttling
+
+### 2. Core Benchmarks to Run
+
+**Matrix Operations Benchmark**:
+- Test simple matrix multiplication with various sizes
+- Measure memory bandwidth with large array operations
+- Compare framework-specific optimizations (e.g., torch.matmul vs JAX lax.dot)
+
+**Neural Network Benchmark**:
+- Test both standard (128 hidden dim) and large (512 hidden dim) MuZero networks
+- Measure forward passes, recurrent inference, and gradient computation
+- Test mixed precision performance when available (FP16, BF16)
+
+**Environment Operations Benchmark**:
+- Benchmark core operations like board rotation and state validation
+- Measure batch processing efficiency at various sizes
+- Time complete episode execution with different batch sizes
+
+**MCTS Simulation Benchmark**:
+- Simulate complete MCTS search steps (forward pass + recurrent steps)
+- Measure end-to-end training iteration performance
+- Test different tree sizes and exploration parameters
+
+### 3. Advanced Testing Techniques
+
+**Memory Profiling**:
+- Measure peak memory usage during operations
+- Test memory throughput with varying batch sizes
+- Profile memory allocation and deallocation patterns
+
+**Multi-Device Scaling**:
+- For multi-GPU or TPU pod setups, test scaling efficiency
+- Measure communication overhead between devices
+- Compare different parallelism strategies (data, model, pipeline)
+
+**Compiler Optimization**:
+- For XLA/TPU, experiment with different compilation options
+- Test specialized graph optimizations
+- Measure compilation cache effectiveness
+
+**Custom Kernel Evaluation**:
+- Implement and test specialized kernels for critical operations
+- Compare vendor-specific libraries (cuDNN, CUTLASS, etc.)
+- Benchmark different implementation strategies for complex operations
+
+### 4. Analysis and Reporting
+
+**Comprehensive Metrics**:
+- Record execution time, throughput, and latency for all operations
+- Calculate speedups relative to CPU baseline
+- Determine crossover points where acceleration becomes beneficial
+
+**Scaling Analysis**:
+- Plot performance vs. batch size on log-log scales
+- Identify bottlenecks and saturation points
+- Determine optimal batch sizes for different operations
+
+**Practical Recommendations**:
+- Document optimal framework choices for the hardware
+- Provide code examples for dynamic device selection
+- Suggest architecture modifications to better utilize the hardware
+
+**Report Generation**:
+- Create standardized markdown reports with consistent formatting
+- Include raw data tables for all benchmarks
+- Generate visualization plots for key metrics
+
+### 5. Platform-Specific Considerations
+
+**For NVIDIA A100**:
+- Test Multi-Instance GPU (MIG) configurations
+- Evaluate TensorFloat-32 (TF32) precision benefits
+- Benchmark NVLink performance for multi-GPU setups
+
+**For Google TPUs**:
+- Focus on JAX with XLA performance
+- Benchmark performance on various TPU versions (v2, v3, v4)
+- Test TPU pod slice scaling efficiency
+
+**For AMD GPUs**:
+- Benchmark ROCm framework support and performance
+- Compare HIP backend with CUDA performance
+- Test pipeline optimization for GCN/RDNA architectures
+
+**For Custom/Specialized Hardware**:
+- Develop adapter layers for framework compatibility
+- Benchmark precision vs performance tradeoffs
+- Evaluate energy efficiency and cost-performance ratio
+
 ## Conclusion
 
-Hardware acceleration via Metal Performance Shaders offers significant performance benefits for the Narde environment, particularly for larger models and batch sizes. By following our implementation guidelines with dynamic device selection, speedups of up to 84x can be achieved for certain operations compared to the baseline NumPy implementation.
+Hardware acceleration offers significant performance benefits for the Narde environment and MuZero training, with different accelerators showing various strengths and weaknesses. By following our testing methodology and implementation recommendations, you can achieve optimal performance across a variety of hardware platforms.
 
-The benefits of hardware acceleration are most pronounced for matrix operations and neural network forward passes with batch sizes above the operation-specific thresholds. For reinforcement learning training with MuZero, this translates to potentially significant reductions in training time when properly implemented. 
+Our benchmarks have shown that:
+
+1. Apple Silicon with MPS provides excellent matrix operation acceleration, particularly at large batch sizes.
+
+2. NVIDIA GPUs with CUDA deliver exceptional neural network performance, especially for larger models.
+
+3. Operation-specific thresholds determine when hardware acceleration becomes beneficial.
+
+4. Framework choice matters significantly, with PyTorch generally providing more consistent acceleration.
+
+For future hardware platforms, thorough benchmarking using our established methodology will help determine the optimal implementation strategy and identify the most cost-effective hardware solutions for MuZero training and deployment. 
