@@ -247,4 +247,4 @@ An example of the board representation:
 
 ---
 ## <a name="license"></a>License
-[MIT](https://github.com/dellalibera/gym-narde/blob/master/LICENSE) 
+[MIT](https://github.com/dellalibera/gym-narde/blob/master/LICENSE)  
