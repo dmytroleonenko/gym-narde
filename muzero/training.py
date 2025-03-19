@@ -26,9 +26,8 @@ from collections import deque
 if torch.cuda.is_available():
     try:
         multiprocessing.set_start_method('spawn', force=True)
-        print("Multiprocessing start method set to 'spawn' for CUDA compatibility")
     except RuntimeError:
-        print("Multiprocessing start method already set to 'spawn' or could not be set. This might cause issues with CUDA and multiprocessing.")
+        pass  # Start method already set or couldn't be set
 
 from muzero.models import MuZeroNetwork
 from muzero.mcts import MCTS
