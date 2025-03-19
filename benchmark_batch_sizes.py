@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Benchmark script to compare PyTorch performance on CPU vs MPS with different batch sizes.
+Benchmark script to compare PyTorch performance on CPU vs CUDA/MPS with different batch sizes.
 """
 
 import time
@@ -10,8 +10,9 @@ import gymnasium as gym
 import gym_narde  # Import to register the environment
 from muzero.models import MuZeroNetwork
 import matplotlib.pyplot as plt
+import os
 
-def benchmark_batch_size(batch_size, num_iterations=500, device_type="cpu"):
+def benchmark_batch_size(batch_size, num_iterations=100, device_type="cpu"):
     """
     Benchmark forward passes through the PyTorch model with a specific batch size.
     """
@@ -21,15 +22,20 @@ def benchmark_batch_size(batch_size, num_iterations=500, device_type="cpu"):
     action_dim = 24 * 24  # 576 possible (from, to) combinations
     
     # Create random inputs
-    observations = np.random.randn(batch_size, input_dim).astype(np.bfloat16)
+    observations = np.random.randn(batch_size, input_dim).astype(np.float32)
     
     # Create PyTorch model
     torch_device = torch.device(device_type)
     torch_model = MuZeroNetwork(input_dim, action_dim).to(torch_device)
-    torch_observations = torch.FloatTensor(observations).to(torch_device).to(torch.bfloat16)
+    torch_observations = torch.FloatTensor(observations).to(torch_device)
+    
+    # Check if device is cuda and print device info
+    if device_type == "cuda":
+        print(f"Running on: {torch.cuda.get_device_name(0)}")
+        print(f"CUDA version: {torch.version.cuda}")
     
     # Warm-up
-    for _ in range(50):
+    for _ in range(10):
         with torch.no_grad():
             torch_model.initial_inference(torch_observations)
     
@@ -61,6 +67,7 @@ def main():
     # Check available devices
     if torch.cuda.is_available():
         print("CUDA is available")
+        print(f"Device: {torch.cuda.get_device_name(0)}")
         gpu_device = "cuda"
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         print("MPS is available")
@@ -70,14 +77,17 @@ def main():
         gpu_device = "cpu"
     
     # Test different batch sizes
-    batch_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+    batch_sizes = [1, 4, 16, 64, 256, 1024, 4096]
     
     cpu_times = []
     gpu_times = []
     speedups = []
     
+    # Results table
+    results = []
+    
     print("\n=== Benchmarking Different Batch Sizes ===")
-    print(f"{'Batch Size':<10} {'CPU (ms)':<10} {'MPS (ms)':<10} {'Speedup':<10}")
+    print(f"{'Batch Size':<10} {'CPU (ms)':<10} {'GPU (ms)':<10} {'Speedup':<10}")
     print("-" * 40)
     
     for batch_size in batch_sizes:
@@ -94,10 +104,40 @@ def main():
             speedup = cpu_time / gpu_time
             speedups.append(speedup)
         else:
+            gpu_time = None
             gpu_times.append(None)
+            speedup = None
             speedups.append(None)
         
-        print(f"{batch_size:<10} {cpu_time * 1000:.2f} ms{' ' * 2} {gpu_time * 1000:.2f} ms{' ' * 2} {speedup:.2f}x")
+        if gpu_time:
+            print(f"{batch_size:<10} {cpu_time * 1000:.2f} ms{' ' * 2} {gpu_time * 1000:.2f} ms{' ' * 2} {speedup:.2f}x")
+            # Save results
+            results.append({
+                "batch_size": batch_size,
+                "cpu_time_ms": cpu_time * 1000,
+                "gpu_time_ms": gpu_time * 1000,
+                "speedup": speedup
+            })
+        else:
+            print(f"{batch_size:<10} {cpu_time * 1000:.2f} ms{' ' * 2} N/A{' ' * 10} N/A")
+            
+    # Generate markdown report
+    report = "# PyTorch Performance Benchmark: CPU vs NVIDIA T4 GPU\n\n"
+    report += "## Test Environment\n\n"
+    report += f"- GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None'}\n"
+    report += f"- CUDA Version: {torch.version.cuda if torch.cuda.is_available() else 'N/A'}\n"
+    report += f"- PyTorch Version: {torch.__version__}\n\n"
+    report += "## Benchmark Results\n\n"
+    report += "| Batch Size | CPU (ms) | GPU (ms) | Speedup |\n"
+    report += "|------------|----------|----------|--------|\n"
+    
+    for result in results:
+        report += f"| {result['batch_size']:<10} | {result['cpu_time_ms']:.2f} | {result['gpu_time_ms']:.2f} | {result['speedup']:.2f}x |\n"
+    
+    # Save the report
+    with open("nvidia_t4_benchmark_report.md", "w") as f:
+        f.write(report)
+    print(f"Report saved to nvidia_t4_benchmark_report.md")
     
     # Plot results
     plt.figure(figsize=(12, 10))
@@ -128,8 +168,8 @@ def main():
         plt.legend()
     
     plt.tight_layout()
-    plt.savefig('batch_size_benchmark.png')
-    print(f"Results saved to batch_size_benchmark.png")
+    plt.savefig('nvidia_t4_benchmark.png')
+    print(f"Results saved to nvidia_t4_benchmark.png")
 
 
 if __name__ == "__main__":

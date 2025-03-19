@@ -11,7 +11,7 @@ from typing import List, Tuple, Dict, Union, Any, Optional
 
 # Enable bfloat16 computations in JAX
 jax.config.update("jax_enable_x64", False)
-jax.config.update("jax_default_dtype_bits", 16)
+jax.config.update("jax_default_dtype_bits", '32')
 
 def rotate_board(board):
     """
