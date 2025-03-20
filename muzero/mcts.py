@@ -234,7 +234,7 @@ class MCTS:
         
         # Extract the search policy (visit counts)
         # Pre-allocate the array with zeros
-        search_policy = np.zeros(self.action_space_size, dtype=np.bfloat16)
+        search_policy = np.zeros(self.action_space_size, dtype=np.float32)
         
         # Update only the actions that have children
         for action, child in root.children.items():

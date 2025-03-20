@@ -75,9 +75,9 @@ class NardeEnv(gym.Env):
         # We'll store them as a Box for simplicity
         # We fill: obs[:24] = board, obs[24] = len(dice), obs[25]= borne_off_white, obs[26]= borne_off_black, obs[27]= is_doubles?
         # (You can store dice faces more explicitly if you prefer.)
-        low = np.array([-15]*24 + [0, 0, 0, 0], dtype=np.bfloat16)
-        high = np.array([+15]*24 + [6, 15, 15, 1], dtype=np.bfloat16)
-        self.observation_space = spaces.Box(low=low, high=high, dtype=np.bfloat16)
+        low = np.array([-15]*24 + [0, 0, 0, 0], dtype=np.float32)
+        high = np.array([+15]*24 + [6, 15, 15, 1], dtype=np.float32)
+        self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
 
         self.dice = []
         self.is_doubles = False
@@ -271,7 +271,7 @@ class NardeEnv(gym.Env):
          obs[26] = borne_off_black
          obs[27] = 1 if doubles, else 0
         """
-        obs = np.zeros(shape=(28,), dtype=np.bfloat16)
+        obs = np.zeros(shape=(28,), dtype=np.float32)
         obs[:24] = self.game.board
         obs[24] = len(self.dice)
         obs[25] = self.game.borne_off_white

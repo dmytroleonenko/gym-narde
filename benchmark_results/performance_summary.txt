@@ -1,0 +1,7 @@
+--- MuZero Performance Comparison Summary ---
+Training speedup: 4.41x
+Training memory reduction: 84.61%
+
+Hardware details:
+GPU: Apple Silicon (MPS)
+System memory: 16.00 GB
