@@ -123,6 +123,7 @@ class MuZeroNetwork(nn.Module):
     def __init__(self, input_dim, action_dim, hidden_dim=256):
         super(MuZeroNetwork, self).__init__()
         self.hidden_dim = hidden_dim
+        self.input_dim = input_dim
         self.action_dim = action_dim
         
         # Networks

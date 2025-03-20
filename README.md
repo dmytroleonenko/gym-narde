@@ -1,3 +1,35 @@
+<h1 align="center">MuZero Implementation for Narde</h1> <br>
+
+## Installation
+
+Install dependencies:
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install as a package
+pip install -e .
+```
+
+## Training MuZero
+
+To train the MuZero model:
+```bash
+# Basic training
+python -m muzero.parallel_training
+
+# Training with custom parameters
+python -m muzero.parallel_training --batch_size 128 --hidden_dim 512 --device cuda
+```
+
+### Important Parameters
+- `--hidden_dim`: Size of the hidden layers (default: 128)
+- `--batch_size`: Training batch size (default: 128)
+- `--games_per_iteration`: Number of games to generate per iteration (default: 2000)
+- `--num_simulations`: MCTS simulations per move (default: 50)
+- `--device`: Computing device (cpu, cuda, mps; default: auto-detect)
+
+---
 
 <h1 align="center">Narde OpenAI Gym</h1> <br>
 <p align="center">

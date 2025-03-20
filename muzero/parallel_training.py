@@ -175,7 +175,10 @@ class TrainingPipeline:
             'network_state_dict': self.network.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'iteration': iteration,
-            'metrics': self.metrics
+            'metrics': self.metrics,
+            'hidden_dim': self.hidden_dim,
+            'input_dim': self.input_dim,
+            'action_dim': self.action_dim
         }, checkpoint_path)
         
         logger.info(f"Saved checkpoint to {checkpoint_path}")
@@ -201,13 +204,64 @@ class TrainingPipeline:
         
         logger.info(f"Loading checkpoint from {checkpoint_path}")
         
-        checkpoint = torch.load(checkpoint_path, map_location=self.device)
-        self.network.load_state_dict(checkpoint['network_state_dict'])
+        # Load checkpoint to CPU first to examine state dict
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        state_dict = checkpoint['network_state_dict']
+        
+        # Check for explicitly saved dimensions first (preferred method)
+        if 'hidden_dim' in checkpoint:
+            checkpoint_hidden_dim = checkpoint['hidden_dim']
+            checkpoint_input_dim = checkpoint.get('input_dim', self.input_dim)
+            checkpoint_action_dim = checkpoint.get('action_dim', self.action_dim)
+            
+            # If dimensions don't match, recreate the network with correct dimensions
+            if (checkpoint_hidden_dim != self.hidden_dim or 
+                checkpoint_input_dim != self.input_dim or 
+                checkpoint_action_dim != self.action_dim):
+                logger.info(f"Checkpoint has different dimensions. Using: " +
+                           f"hidden_dim={checkpoint_hidden_dim}, " +
+                           f"input_dim={checkpoint_input_dim}, " +
+                           f"action_dim={checkpoint_action_dim}")
+                
+                self.hidden_dim = checkpoint_hidden_dim
+                self.input_dim = checkpoint_input_dim
+                self.action_dim = checkpoint_action_dim
+                
+                self.network = MuZeroNetwork(
+                    input_dim=self.input_dim,
+                    action_dim=self.action_dim,
+                    hidden_dim=self.hidden_dim
+                )
+        # Fall back to old method of detecting dimensions from weights
+        elif 'representation_network.fc.6.bias' in state_dict:
+            checkpoint_hidden_dim = state_dict['representation_network.fc.6.bias'].shape[0]
+            
+            # If dimensions don't match, recreate the network with correct dimensions
+            if checkpoint_hidden_dim != self.hidden_dim:
+                logger.info(f"Detected different hidden_dim in checkpoint: {checkpoint_hidden_dim}, " +
+                           f"current model: {self.hidden_dim}. Recreating network...")
+                self.hidden_dim = checkpoint_hidden_dim
+                self.network = MuZeroNetwork(
+                    input_dim=self.input_dim,
+                    action_dim=self.action_dim,
+                    hidden_dim=self.hidden_dim
+                )
+        
+        # Now load the state dict to the device
+        self.network = self.network.to(self.device)
+        self.network.load_state_dict(state_dict)
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
+        # Move optimizer params to device
+        for state in self.optimizer.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(self.device)
+        
         loaded_iteration = checkpoint['iteration']
         self.metrics = checkpoint.get('metrics', self.metrics)
         
-        logger.info(f"Loaded checkpoint from iteration {loaded_iteration}")
+        logger.info(f"Loaded checkpoint from iteration {loaded_iteration} with hidden_dim={self.hidden_dim}")
         return loaded_iteration
     
     def generate_games(self, iteration: int) -> float:
@@ -224,6 +278,7 @@ class TrainingPipeline:
         os.makedirs(iteration_games_dir, exist_ok=True)
         
         logger.info(f"Generating {self.games_per_iteration} games for iteration {iteration}")
+        logger.info(f"Network dimensions: input_dim={self.input_dim}, action_dim={self.action_dim}, hidden_dim={self.hidden_dim}")
         start_time = time.time()
         
         # Move network to CPU and get state dict

@@ -111,6 +111,10 @@ def play_game_worker(game_id: int, network_weights: Dict, num_simulations: int,
     """
     try:
         from gym_narde.envs import NardeEnv
+        import logging
+        
+        # Configure worker-specific logging
+        logger = logging.getLogger("MuZero-Worker")
         
         # Create device - each worker should use CPU to avoid GPU contention
         device = "cpu"
@@ -119,9 +123,26 @@ def play_game_worker(game_id: int, network_weights: Dict, num_simulations: int,
         from muzero.models import MuZeroNetwork
         input_dim = 24  # Board size for Narde
         action_dim = 576  # 24x24 possible moves
-        network = MuZeroNetwork(input_dim, action_dim)
+        
+        # Detect hidden_dim from weights - first look for representation_network.fc.6.bias
+        hidden_dim = None
+        for key in ['representation_network.fc.6.bias', 'representation_network.fc.7.bias']:
+            if key in network_weights:
+                tensor_shape = network_weights[key].shape
+                hidden_dim = tensor_shape[0]
+                logger.info(f"Game worker {game_id}: Detected hidden_dim={hidden_dim} from {key} with shape {tensor_shape}")
+                break
+                
+        if hidden_dim is None:
+            # Fallback to default used in MuZeroNetwork
+            hidden_dim = 256
+            logger.info(f"Game worker {game_id}: Using default hidden_dim={hidden_dim}")
+        
+        logger.info(f"Game worker {game_id}: Creating network with hidden_dim={hidden_dim}")
+        network = MuZeroNetwork(input_dim, action_dim, hidden_dim=hidden_dim)
         
         # Load the weights
+        logger.info(f"Game worker {game_id}: Loading weights")
         network.load_state_dict(network_weights)
         network = network.to(device)
         
@@ -189,6 +210,31 @@ def generate_games_parallel(
     # Must move to CPU first for pickling
     cpu_network = network.to("cpu")
     network_weights = cpu_network.state_dict()
+    
+    # Check network dimensions
+    hidden_dim = None
+    if hasattr(cpu_network, 'hidden_dim'):
+        hidden_dim = cpu_network.hidden_dim
+        logger.info(f"Network has hidden_dim attribute: {hidden_dim}")
+    else:
+        # Default used in MuZeroNetwork
+        hidden_dim = 256
+        logger.info(f"No hidden_dim attribute found, using default: {hidden_dim}")
+    
+    # Check for key tensor shapes
+    example_keys = [
+        'representation_network.fc.6.bias',
+        'representation_network.fc.7.bias',
+        'dynamics_network.fc.6.bias',
+        'prediction_network.fc.0.weight'
+    ]
+    
+    for key in example_keys:
+        if key in network_weights:
+            shape = network_weights[key].shape
+            logger.info(f"Network weight '{key}' has shape: {shape}")
+    
+    logger.info(f"Using network with hidden_dim={hidden_dim}")
     
     # Move network back to original device
     if hasattr(network, 'device') and network.device != "cpu":
