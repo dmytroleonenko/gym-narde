@@ -35,7 +35,11 @@
 - Improved training workflow to alternate between game generation and model training in iterations
 - Reduced log verbosity in `muzero/parallel_self_play.py` by moving worker network initialization messages to DEBUG level
 - Removed temporary test code after verifying fixes for temperature_drop handling and directory creation
-- Enhanced optimized self-play implementation to utilize multiple worker processes in parallel when using CUDA, allowing better utilization of multi-core CPUs alongside GPU acceleration
+- Enhanced optimized self-play implementation to utilize multiple worker processes in parallel when using GPU acceleration, allowing better utilization of multi-core CPUs
+- Improved multiprocessing support for both CUDA and MPS (Apple Silicon) in parallel training:
+  - Added explicit spawn context for more robust processes with GPU access
+  - Enhanced error handling with better logging and exception tracing
+  - Added support for running optimized self-play with MPS acceleration on Apple Silicon
 
 ### Fixed
 - Patched Haiku library to use `jax.extend.core` instead of deprecated `jax.core`

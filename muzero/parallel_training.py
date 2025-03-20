@@ -46,6 +46,87 @@ worker_logger = logging.getLogger("MuZero-Worker")
 worker_logger.setLevel(max(log_level, logging.INFO))  # Ensure worker logs are at least INFO
 
 
+# Define top-level worker function for multiprocessing
+def optimized_self_play_worker(worker_id, network_weights, num_games, save_dir, 
+                               num_simulations, temperature, temperature_drop,
+                               mcts_batch_size, env_batch_size, hidden_dim, target_device):
+    worker_process_id = os.getpid()
+    logger.info(f"Worker {worker_id} started in process {worker_process_id}")
+    
+    try:
+        # Import necessary modules inside worker to avoid multiprocessing issues
+        from muzero.models import MuZeroNetwork
+        from muzero.training_optimized import optimized_self_play
+        from muzero.parallel_self_play import save_game_history
+        import torch
+        
+        # Determine device to use in this worker
+        device = target_device
+        if device == "auto":
+            if torch.cuda.is_available():
+                device = "cuda"
+                logger.info(f"Worker {worker_id} detected CUDA device")
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                device = "mps"
+                logger.info(f"Worker {worker_id} detected MPS (Apple Silicon)")
+            else:
+                device = "cpu"
+                logger.info(f"Worker {worker_id} defaulting to CPU (no GPU detected)")
+        
+        # When using MPS, make sure it's initialized properly
+        if device == "mps":
+            # Force MPS initialization explicitly before any tensor operations
+            logger.info(f"Worker {worker_id} explicitly initializing MPS device")
+            _ = torch.zeros(1, device="mps")
+            torch.mps.synchronize()  # Wait for initialization to complete
+        
+        logger.info(f"Worker {worker_id} using device: {device}")
+        
+        # Create a new network instance in this process
+        network = MuZeroNetwork(
+            input_dim=28, 
+            action_dim=576, 
+            hidden_dim=hidden_dim
+        )
+        # Load weights first on CPU (avoids MPS initialization issues)
+        network.load_state_dict(network_weights)
+        # Then move to target device
+        network = network.to(device)
+        logger.info(f"Worker {worker_id} created network and moved to {device}")
+        
+        # Worker specific directory
+        worker_dir = os.path.join(save_dir, f"worker_{worker_id}")
+        os.makedirs(worker_dir, exist_ok=True)
+        
+        logger.info(f"Worker {worker_id} running optimized_self_play for {num_games} games with device={device}")
+        
+        # Run optimized self-play
+        batch_game_histories = optimized_self_play(
+            network=network,
+            num_games=num_games,
+            num_simulations=num_simulations,
+            mcts_batch_size=mcts_batch_size,
+            env_batch_size=min(num_games, env_batch_size),
+            temperature=temperature,
+            temperature_drop=temperature_drop,
+            device=device
+        )
+        
+        # Save games and return paths
+        game_paths = []
+        for i, game_history in enumerate(batch_game_histories):
+            filepath = save_game_history(game_history, worker_dir, i)
+            game_paths.append(filepath)
+        
+        logger.info(f"Worker {worker_id} completed {len(game_paths)} games")
+        return game_paths
+    except Exception as e:
+        logger.error(f"Worker {worker_id} encountered error: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return []
+
+
 class TrainingPipeline:
     """
     End-to-end training pipeline for MuZero that combines parallel game
@@ -321,16 +402,32 @@ class TrainingPipeline:
             if torch.cuda.is_available():
                 device = "cuda"
                 use_optimized = True
-                logger.info("Using optimized_self_play with GPU acceleration")
+                logger.info("Using optimized_self_play with CUDA acceleration")
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                # Check if MPS is truly working by creating a small tensor
+                try:
+                    # Create a small tensor on MPS to verify it works
+                    test_tensor = torch.ones(1, device="mps")
+                    # Try a simple operation to confirm MPS backend is operational
+                    _ = test_tensor + test_tensor  
+                    torch.mps.synchronize()
+                    device = "mps"
+                    use_optimized = True
+                    logger.info("Using optimized_self_play with MPS (Apple Silicon) acceleration - verified working")
+                except Exception as e:
+                    logger.warning(f"MPS appears available but failed initialization test: {str(e)}")
+                    logger.warning("Falling back to CPU implementation")
+                    device = "cpu"
             else:
-                logger.warning("use_optimized_self_play is enabled but no CUDA device available, falling back to parallel CPU version")
+                logger.warning("use_optimized_self_play is enabled but no GPU device available, falling back to parallel CPU version")
         
         # Move the network to the appropriate device
         network_for_games = self.network.to(device)
         
-        if self.use_optimized_self_play and torch.cuda.is_available():
-            # Use optimized self-play with GPU acceleration
-            logger.info("Using optimized_self_play with GPU acceleration")
+        if use_optimized:
+            # Use optimized self-play with GPU acceleration (CUDA or MPS)
+            gpu_type = "CUDA" if torch.cuda.is_available() else "MPS"
+            logger.info(f"Using optimized_self_play with {gpu_type} acceleration")
             
             # Calculate batch configuration
             games_per_worker = self.games_per_iteration // self.num_workers
@@ -340,49 +437,25 @@ class TrainingPipeline:
             network_for_games = self.network.to('cpu')  # Move to CPU for pickling
             network_weights = network_for_games.state_dict()
             
-            logger.info(f"Using optimized self-play with {self.num_workers} workers and GPU acceleration")
+            logger.info(f"Using optimized self-play with {self.num_workers} workers and {gpu_type} acceleration")
             logger.info(f"Each worker will generate ~{games_per_worker} games")
             
             import concurrent.futures
+            import multiprocessing
             from functools import partial
             
-            # Define worker function to run optimized_self_play in parallel
-            def optimized_self_play_worker(worker_id, network_weights, num_games, save_dir, device='cuda'):
-                # Create a new network instance
-                from muzero.models import MuZeroNetwork
-                network = MuZeroNetwork(input_dim=28, action_dim=576, hidden_dim=self.hidden_dim)
-                network.load_state_dict(network_weights)
-                network = network.to(device)
-                
-                # Worker specific directory
-                worker_dir = os.path.join(save_dir, f"worker_{worker_id}")
-                os.makedirs(worker_dir, exist_ok=True)
-                
-                # Run optimized self-play
-                batch_game_histories = optimized_self_play(
-                    network=network,
-                    num_games=num_games,
-                    num_simulations=self.num_simulations,
-                    mcts_batch_size=self.mcts_batch_size,
-                    env_batch_size=min(num_games, self.env_batch_size),
-                    temperature=self.temperature,
-                    temperature_drop=self.temperature_drop,
-                    device=device
-                )
-                
-                # Save games and return paths
-                game_paths = []
-                for i, game_history in enumerate(batch_game_histories):
-                    filepath = save_game_history(game_history, worker_dir, i)
-                    game_paths.append(filepath)
-                
-                return game_paths
-
             # Distribute games across workers
             start_time = time.time()
             game_paths = []
             
-            with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+            # Make sure we're using spawn method for starting processes 
+            # This is required for CUDA and recommended for MPS
+            ctx = multiprocessing.get_context('spawn')
+            
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=self.num_workers, 
+                mp_context=ctx
+            ) as executor:
                 # Create tasks for each worker
                 futures = []
                 for worker_id in range(self.num_workers):
@@ -395,68 +468,38 @@ class TrainingPipeline:
                             network_weights,
                             worker_games,
                             iteration_games_dir,
-                            'cuda'  # Each worker uses the GPU
+                            self.num_simulations,
+                            self.temperature,
+                            self.temperature_drop,
+                            self.mcts_batch_size,
+                            self.env_batch_size,
+                            self.hidden_dim,
+                            self.device  # Pass the device configured in the pipeline
                         )
                         futures.append(future)
+                        logger.info(f"Submitted worker {worker_id} to generate {worker_games} games")
                 
                 # Process results as they complete
                 completed = 0
                 for future in concurrent.futures.as_completed(futures):
-                    worker_paths = future.result()
-                    game_paths.extend(worker_paths)
-                    completed += len(worker_paths)
-                    
-                    # Log progress
-                    elapsed = time.time() - start_time
-                    games_per_second = completed / elapsed if elapsed > 0 else 0
-                    logger.info(f"Completed {completed}/{self.games_per_iteration} games " 
-                               f"({games_per_second:.2f} games/s)")
+                    try:
+                        worker_paths = future.result()
+                        game_paths.extend(worker_paths)
+                        completed += len(worker_paths)
+                        
+                        # Log progress
+                        elapsed = time.time() - start_time
+                        games_per_second = completed / elapsed if elapsed > 0 else 0
+                        logger.info(f"Completed {completed}/{self.games_per_iteration} games " 
+                                   f"({games_per_second:.2f} games/s)")
+                    except Exception as e:
+                        logger.error(f"Error processing worker result: {str(e)}")
                                
             # Move network back to training device
             self.network = self.network.to(self.device)
-        
-        elif self.use_optimized_self_play:
-            # Fallback to standard optimized self-play on CPU
-            logger.warning("use_optimized_self_play is enabled but no CUDA device available, falling back to parallel CPU version")
-            
-            # Calculate number of batches
-            num_batches = (self.games_per_iteration + self.env_batch_size - 1) // self.env_batch_size
-            game_paths = []
-            
-            for batch in range(num_batches):
-                batch_size = min(self.env_batch_size, self.games_per_iteration - batch * self.env_batch_size)
-                if batch_size <= 0:
-                    break
-                    
-                batch_dir = os.path.join(iteration_games_dir, f"batch_{batch}")
-                os.makedirs(batch_dir, exist_ok=True)
-                
-                logger.info(f"Generating batch {batch+1}/{num_batches} with {batch_size} games")
-                batch_game_histories = optimized_self_play(
-                    network=network_for_games,
-                    num_games=batch_size,
-                    num_simulations=self.num_simulations,
-                    mcts_batch_size=self.mcts_batch_size,
-                    env_batch_size=batch_size,
-                    temperature=self.temperature,
-                    temperature_drop=self.temperature_drop,
-                    device=device
-                )
-                
-                # Save the games
-                for i, game_history in enumerate(batch_game_histories):
-                    game_id = batch * self.env_batch_size + i
-                    filepath = save_game_history(game_history, batch_dir, game_id)
-                    game_paths.append(filepath)
-                    
-                # Log progress
-                games_so_far = batch * self.env_batch_size + batch_size
-                elapsed = time.time() - start_time
-                games_per_second = games_so_far / elapsed
-                logger.info(f"Completed {games_so_far}/{self.games_per_iteration} games " 
-                           f"({games_per_second:.2f} games/s)")
         else:
             # Generate games using standard parallel implementation
+            logger.info("Using standard parallel implementation for game generation")
             game_paths = generate_games_parallel(
                 network=network_for_games,
                 num_games=self.games_per_iteration,
