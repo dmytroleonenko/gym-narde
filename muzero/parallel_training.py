@@ -131,8 +131,7 @@ class TrainingPipeline:
         self.network = MuZeroNetwork(
             input_dim=input_dim,
             action_dim=action_dim,
-            hidden_dim=hidden_dim,
-            latent_dim=latent_dim
+            hidden_dim=hidden_dim
         )
         self.network = self.network.to(self.device)
         
@@ -393,8 +392,7 @@ def parse_arguments():
     # Network parameters
     parser.add_argument("--hidden_dim", type=int, default=128, 
                         help="Hidden dimension for the MuZero network")
-    parser.add_argument("--latent_dim", type=int, default=64, 
-                        help="Latent dimension for the MuZero network")
+    # Note: latent_dim is kept for backwards compatibility but not used in current MuZeroNetwork implementation
     
     return parser.parse_args()
 
@@ -406,7 +404,6 @@ if __name__ == "__main__":
     pipeline = TrainingPipeline(
         base_dir=args.base_dir,
         hidden_dim=args.hidden_dim,
-        latent_dim=args.latent_dim,
         batch_size=args.batch_size,
         lr=args.lr,
         weight_decay=args.weight_decay,
