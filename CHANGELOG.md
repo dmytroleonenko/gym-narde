@@ -19,6 +19,15 @@
 - Added persistent game storage and loading for resumable training
 - Added `README_training_pipeline.md` with comprehensive documentation on running the training pipeline and evaluating model performance
 - Added `muzero/evaluate_model.py` script for evaluating model performance and tracking improvements across iterations
+- Created `final_complete_game_generation.py` that ensures games complete properly with bearing off all checkers
+- Extended `README_training_pipeline.md` with detailed documentation on optimized self-play for Narde
+- Integrated fixed bearing off action encoding into the vectorized environment and parallel training pipeline
+- Improved `final_complete_game_generation.py` to use MuZero network for move selection:
+  - Added proper environment integration for dice rolling and move execution
+  - Implemented parallel game generation using multiple worker processes
+  - Added timing and performance measurements for analysis
+  - Added fallback to random selection when MuZero model loading fails
+  - Added command-line option for random selection mode
 
 ### Changed
 - Updated JAX configuration in `test_jax_muzero_networks.py`:
@@ -40,6 +49,12 @@
   - Added explicit spawn context for more robust processes with GPU access
   - Enhanced error handling with better logging and exception tracing
   - Added support for running optimized self-play with MPS acceleration on Apple Silicon
+- Improved game generation for training with complete games:
+  - Significantly increased average game length from <10 moves to ~245 moves
+  - Enhanced the realism of training data by ensuring proper bearing off of all checkers
+  - Optimized performance with caching of valid moves (~9x speedup)
+  - Integrated fixes into the MuZero parallel training pipeline for high-quality training data
+- Modified `final_complete_game_generation.py` to use MuZero for both agents when the --random flag is not provided, enabling full MuZero vs MuZero gameplay
 
 ### Fixed
 - Patched Haiku library to use `jax.extend.core` instead of deprecated `jax.core`
@@ -61,6 +76,12 @@
   - Fixed `self_play_demo` function in `parallel_self_play.py` to use proper dimensions
 - Fixed temperature_drop handling in `muzero/training_optimized.py` to properly handle None values, preventing comparison errors when running with CUDA
 - Fixed directory creation in `train_muzero_optimized` function to handle empty checkpoint paths, preventing FileNotFoundError
+- Fixed critical issue with bearing off action encoding in Narde game generation:
+  - Corrected the action encoding for bearing off moves to multiply from_pos by 24
+  - Fixed decoding of bearing off moves in the environment
+  - Resolved premature game termination issue, ensuring games complete properly
+  - Properly tracked bearing off progress for both players
+  - Updated the vectorized environment implementation to use the fixed encoding
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative
@@ -72,4 +93,6 @@
   - Effective utilization of hardware acceleration (MPS on Apple Silicon)
 - The new parallel training pipeline enables further scaling with multiple CPU cores and saves time by parallelizing game generation
 - Checkpoint management allows for resumable training and continuous improvement of the model
-- Automatic model evaluation provides insights into training progress and helps identify the best-performing model versions 
+- Automatic model evaluation provides insights into training progress and helps identify the best-performing model versions
+- Game generation now produces complete and realistic Narde games with proper bearing off mechanics
+- Training data quality is significantly improved with full game trajectories 
