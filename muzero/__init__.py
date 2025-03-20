@@ -6,7 +6,7 @@ This package contains:
 - MCTS implementation
 - Replay buffer
 - Training script
-- MuZero agent compatible with NardeAgent interface
+- MuZero agent compatible with Narde environment
 """
 
 from muzero.models import MuZeroNetwork, RepresentationNetwork, DynamicsNetwork, PredictionNetwork

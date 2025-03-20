@@ -13,7 +13,9 @@ import timeit
 # Import both environment implementations
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'gym_narde', 'envs'))
+
+# Add the parent directory to the Python path to access the modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from optimized_narde_env import OptimizedNardeEnv
 from torch_narde_env import TorchNardeEnv
 

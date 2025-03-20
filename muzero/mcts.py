@@ -91,7 +91,14 @@ class MCTS:
                 
             # Apply mask to policy logits (set invalid actions to -inf)
             masked_policy_logits = root_policy_logits.clone()
-            masked_policy_logits[0, ~action_mask.bool()] = float('-inf')
+            
+            # Fix the tensor shape mismatch - ensure action_mask has batch dimension
+            # Reshape action_mask to match root_policy_logits shape [batch_size x action_space]
+            if root_policy_logits.dim() > action_mask.dim():
+                action_mask = action_mask.unsqueeze(0)  # Add batch dimension
+                
+            # Now apply the mask safely
+            masked_policy_logits[~action_mask.bool()] = float('-inf')
             root_policy_logits = masked_policy_logits
             
         # Convert policy logits to probabilities

@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Every time we finish with the task (nothing more to do) we must update the CHANGELOG.md with that we did and what we end up with

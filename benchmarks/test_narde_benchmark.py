@@ -3,13 +3,16 @@
 Tests for the NardeBenchmark class.
 """
 
+import unittest
 import pytest
-import numpy as np
 import random
-import torch
+import numpy as np
 from unittest.mock import MagicMock, patch
+import os
+import sys
 
-# Import the benchmark framework and agent classes
+# Add the parent directory to the Python path to access the modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from narde_benchmark import NardeBenchmark, ColorAssignment, GameResult, BenchmarkResult
 from narde_agents import RandomAgent
 

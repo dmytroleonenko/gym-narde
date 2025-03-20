@@ -119,6 +119,13 @@ class NardeEnv(gym.Env):
             print(f"DEBUG step: action={action}, decoded to move={move}")
             print(f"DEBUG step: current dice={self.dice}, game dice={self.game.dice}")
         
+        # Special case: None move means skip turn
+        if move is None:
+            # Rotate the board for the next player
+            self.game.rotate_board_for_next_player()
+            self._roll_dice()
+            return self._get_obs(), 0.0, False, False, {"dice": self.dice.copy(), "skipped_turn": True}
+        
         # Check if move is valid by comparing with all valid moves
         valid_moves = self.game.get_valid_moves()
         
@@ -132,8 +139,9 @@ class NardeEnv(gym.Env):
         if move not in valid_moves:
             if self.debug:
                 print(f"DEBUG step: Invalid move {move}, valid moves are {valid_moves}")
-            # If move is invalid, episode is over with big penalty
-            return self._get_obs(), -1.0, True, False, {"dice": self.dice.copy(), "invalid_move": True}
+            # Instead of ending the game, return a penalty but continue
+            # This prevents early termination due to invalid moves
+            return self._get_obs(), -0.1, False, False, {"dice": self.dice.copy(), "invalid_move": True}
         
         # Execute the valid move
         is_bear_off = move[1] == 'off'
@@ -246,20 +254,41 @@ class NardeEnv(gym.Env):
         Convert (move_index, move_type) to (from_pos, to_pos) or (from_pos, 'off').
         move_index = from_pos*24 + to_pos.
         If move_type==1 => to_pos='off' (bearing off).
+        
+        Special case: If action is None, this is a signal to skip the turn
         """
+        # Special case for None action - this is a signal to skip the turn
+        if action is None:
+            return None
+            
         if isinstance(action, tuple):
             move_index, move_type = action
         else:
             # If user only gives a single integer, treat it as (move_index,0)
             move_index = action
             move_type = 0
+            
+        # First handle bearing off explicitly marked with move_type=1
+        if move_type == 1:
+            from_pos = move_index // 24
+            return (from_pos, 'off')
 
+        # For regular moves, check if we should interpret as bearing off
         from_pos = move_index // 24
         to_pos = move_index % 24
+        
+        # Check if this action should be interpreted as bearing off
+        # This handles cases where the action index might be intended for bearing off
+        # like action=0 (from=0,to=0) or action=48 (from=2,to=0)
+        valid_moves = self.game.get_valid_moves()
+        for move in valid_moves:
+            # If there's a valid bearing off move from this position, prioritize that
+            if move[0] == from_pos and move[1] == 'off':
+                if self.debug:
+                    print(f"DEBUG: Interpreted action {action} as bearing off move ({from_pos}, 'off')")
+                return (from_pos, 'off')
 
-        if move_type == 1:
-            # Bearing off => ignore to_pos, use 'off'
-            return (from_pos, 'off')
+        # Otherwise return the regular move
         return (from_pos, to_pos)
 
     def _get_obs(self):
@@ -296,7 +325,7 @@ class NardeEnv(gym.Env):
         self.game.dice = self.dice.copy()
             
         # If in debug mode, log the dice roll
-        if hasattr(self, 'debug') and self.debug:
+        if self.debug:
             print(f"DEBUG: Rolled dice: {self.dice}")
         
         return self.dice

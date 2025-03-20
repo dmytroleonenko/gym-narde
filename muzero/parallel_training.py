@@ -19,6 +19,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Union, Any
+import traceback
 
 # Import local modules
 from muzero.models import MuZeroNetwork
@@ -72,8 +73,10 @@ class TrainingPipeline:
         mcts_batch_size: int = 8,
         env_batch_size: int = 16,
         use_optimized_self_play: bool = False,
+        use_batched_game_generation: bool = False,
         training_iterations: int = 10,
-        save_checkpoint_every: int = 1
+        save_checkpoint_every: int = 1,
+        debug: bool = False
     ):
         """
         Initialize the training pipeline.
@@ -97,9 +100,37 @@ class TrainingPipeline:
             mcts_batch_size: Batch size for batched MCTS when using optimized self-play
             env_batch_size: Batch size for vectorized environment when using optimized self-play
             use_optimized_self_play: Whether to use the optimized self-play implementation
+            use_batched_game_generation: Whether to use batched game generation
             training_iterations: Number of training iterations to run
             save_checkpoint_every: Save checkpoint every N iterations
+            debug: Whether to enable debug logging
         """
+        # Create a namespace to store all arguments for easy access
+        self.args = argparse.Namespace()
+        self.args.base_dir = base_dir
+        self.args.input_dim = input_dim
+        self.args.action_dim = action_dim
+        self.args.hidden_dim = hidden_dim
+        self.args.lr = lr
+        self.args.weight_decay = weight_decay
+        self.args.batch_size = batch_size
+        self.args.replay_buffer_size = replay_buffer_size
+        self.args.games_per_iteration = games_per_iteration
+        self.args.num_simulations = num_simulations
+        self.args.num_epochs = num_epochs
+        self.args.temperature = temperature
+        self.args.temperature_drop = temperature_drop
+        self.args.device = device
+        self.args.num_workers = get_optimal_worker_count(num_workers)
+        self.args.mcts_batch_size = mcts_batch_size
+        self.args.env_batch_size = env_batch_size
+        self.args.use_optimized_self_play = use_optimized_self_play
+        self.args.use_batched_game_generation = use_batched_game_generation
+        self.args.training_iterations = training_iterations
+        self.args.save_checkpoint_every = save_checkpoint_every
+        self.args.debug = debug
+        
+        # Also set individual attributes for backward compatibility
         self.base_dir = base_dir
         self.input_dim = input_dim
         self.action_dim = action_dim
@@ -120,6 +151,7 @@ class TrainingPipeline:
         self.use_optimized_self_play = use_optimized_self_play
         self.training_iterations = training_iterations
         self.save_checkpoint_every = save_checkpoint_every
+        self.debug = debug
         
         # Set up directories
         self.games_dir = os.path.join(base_dir, "games")
@@ -280,12 +312,13 @@ class TrainingPipeline:
         logger.info(f"Loaded checkpoint from iteration {loaded_iteration} with hidden_dim={self.hidden_dim}")
         return loaded_iteration
     
-    def generate_games(self, iteration: int) -> float:
+    def generate_games(self, iteration: int, games_per_iteration: int) -> float:
         """
         Generate games in parallel and store them to disk.
         
         Args:
             iteration: Current training iteration
+            games_per_iteration: Number of games to generate per iteration
             
         Returns:
             Time taken to generate games
@@ -293,7 +326,7 @@ class TrainingPipeline:
         iteration_games_dir = self._get_game_iteration_dir(iteration)
         os.makedirs(iteration_games_dir, exist_ok=True)
         
-        logger.info(f"Generating {self.games_per_iteration} games for iteration {iteration}")
+        logger.info(f"Generating {games_per_iteration} games for iteration {iteration}")
         logger.info(f"Network dimensions: input_dim={self.input_dim}, action_dim={self.action_dim}, hidden_dim={self.hidden_dim}")
         
         # Performance tips
@@ -350,8 +383,8 @@ class TrainingPipeline:
             logger.info(f"Using optimized_self_play with {gpu_type} acceleration")
             
             # Calculate batch configuration
-            games_per_worker = self.games_per_iteration // self.num_workers
-            remainder = self.games_per_iteration % self.num_workers
+            games_per_worker = games_per_iteration // self.num_workers
+            remainder = games_per_iteration % self.num_workers
             
             # Use ProcessPoolExecutor to parallelize the generation tasks
             network_for_games = self.network.to('cpu')  # Move to CPU for pickling
@@ -410,7 +443,7 @@ class TrainingPipeline:
                         # Log progress
                         elapsed = time.time() - start_time
                         games_per_second = completed / elapsed if elapsed > 0 else 0
-                        logger.info(f"Completed {completed}/{self.games_per_iteration} games " 
+                        logger.info(f"Completed {completed}/{games_per_iteration} games " 
                                    f"({games_per_second:.2f} games/s)")
                     except Exception as e:
                         logger.error(f"Error processing worker result: {str(e)}")
@@ -422,7 +455,7 @@ class TrainingPipeline:
             logger.info("Using standard parallel implementation for game generation")
             game_paths = generate_games_parallel(
                 network=network_for_games,
-                num_games=self.games_per_iteration,
+                num_games=games_per_iteration,
                 num_simulations=self.num_simulations,
                 temperature=self.temperature,
                 save_dir=iteration_games_dir,
@@ -439,7 +472,7 @@ class TrainingPipeline:
         self.network = self.network.to(self.device)
         
         generation_time = time.time() - start_time
-        games_per_second = self.games_per_iteration / generation_time
+        games_per_second = games_per_iteration / generation_time
         
         logger.info(f"Generated {len(game_paths)} games in {generation_time:.2f}s "
                     f"({games_per_second:.2f} games/s)")
@@ -526,8 +559,50 @@ class TrainingPipeline:
         for iteration in range(start_iteration, start_iteration + self.training_iterations):
             logger.info(f"=== Iteration {iteration} ===")
             
-            # Generate games
-            generation_time = self.generate_games(iteration)
+            # Game generation step update
+            if self.args.use_batched_game_generation:
+                try:
+                    logger.info("Using batched game generation with GPU accelerated MCTS.")
+                    
+                    # Create a model for batched MCTS
+                    logger.info("Creating initial model for batched game generation")
+                    model_path = os.path.join(self.models_dir, "muzero_model_temp.pth")
+                    torch.save(self.network.state_dict(), model_path)
+                    logger.info(f"Using model from {model_path} for batched game generation")
+
+                    # Initialize BatchedGameSimulator
+                    from final_complete_game_generation import BatchedGameSimulator
+                    simulator = BatchedGameSimulator(
+                        num_games=self.args.games_per_iteration,
+                        model_path=model_path,
+                        batch_size=self.args.mcts_batch_size,
+                        max_games=self.args.games_per_iteration,
+                        device=self.device,
+                        debug=self.args.debug
+                    )
+                    
+                    # Run simulation
+                    start_time = time.time()
+                    simulator.run()
+                    
+                    # Get game histories and add to replay buffer
+                    game_histories = simulator.extract_game_histories()
+                    self.add_games_to_replay_buffer(game_histories)
+                    generation_time = time.time() - start_time
+                    logger.info(f"Generated {len(game_histories)} games in {generation_time:.2f}s with batched MCTS")
+                    
+                except Exception as e:
+                    logger.error(f"Error in batched game generation: {str(e)}")
+                    logger.error(traceback.format_exc())
+                    logger.warning("Falling back to standard game generation...")
+                    self.network.to("cpu")
+                    start_time = time.time()
+                    self.generate_games(iteration, self.args.games_per_iteration)
+                    generation_time = time.time() - start_time
+            else:
+                start_time = time.time()
+                self.generate_games(iteration, self.args.games_per_iteration)
+                generation_time = time.time() - start_time
             
             # Train on generated games
             training_metrics = self.train_on_generated_games(iteration)
@@ -546,6 +621,40 @@ class TrainingPipeline:
                 self.save_checkpoint(iteration)
         
         logger.info("Training pipeline completed")
+
+    def add_games_to_replay_buffer(self, game_histories):
+        """Add game histories to the replay buffer."""
+        logger.info(f"Adding {len(game_histories)} games to replay buffer")
+        for game_history in game_histories:
+            try:
+                # Handle different formats of game history
+                if isinstance(game_history, list) and len(game_history) > 0 and isinstance(game_history[0], tuple):
+                    # If it's already in the format expected by ReplayBuffer.save_game() (list of tuples)
+                    self.replay_buffer.save_game(game_history)
+                elif isinstance(game_history, dict) and 'observations' in game_history:
+                    # If it's a dictionary with observations, actions, rewards
+                    observations = game_history.get('observations', [])
+                    actions = game_history.get('actions', [])
+                    rewards = game_history.get('rewards', [])
+                    
+                    # Create a placeholder uniform policy
+                    uniform_policy = np.zeros(self.action_dim, dtype=np.float32)
+                    uniform_policy.fill(1.0 / self.action_dim)
+                    
+                    # Create the game history tuples format
+                    game_tuples = []
+                    for i in range(min(len(observations), len(actions))):
+                        reward = rewards[i] if i < len(rewards) else 0
+                        game_tuples.append((observations[i], actions[i], reward, uniform_policy))
+                    
+                    # Save the game
+                    if game_tuples:
+                        self.replay_buffer.save_game(game_tuples)
+                else:
+                    logger.warning(f"Unsupported game history format: {type(game_history)}")
+            except Exception as e:
+                logger.error(f"Error adding game to replay buffer: {str(e)}")
+                logger.error(traceback.format_exc())
 
 
 def parse_arguments():
@@ -575,12 +684,14 @@ def parse_arguments():
                         help="Temperature for action selection")
     parser.add_argument("--temperature_drop", type=int, default=None, 
                         help="Move number after which temperature is dropped to 0")
-    parser.add_argument("--mcts_batch_size", type=int, default=8, 
-                        help="Batch size for MCTS simulations")
+    parser.add_argument("--mcts_batch_size", type=int, default=16, 
+                        help="Batch size for MCTS simulations and batched game generation")
     parser.add_argument("--env_batch_size", type=int, default=16,
                         help="Batch size for vectorized environments (only with optimized self-play)")
     parser.add_argument("--use_optimized_self_play", action="store_true",
                         help="Use the optimized self-play implementation with batched MCTS")
+    parser.add_argument("--use_batched_game_generation", action="store_true", 
+                        help="Use batched GPU accelerated game generation for faster game simulation")
     parser.add_argument("--training_iterations", type=int, default=10, 
                         help="Number of training iterations")
     parser.add_argument("--save_checkpoint_every", type=int, default=1, 
@@ -589,6 +700,8 @@ def parse_arguments():
                         help="Load checkpoint from specific iteration (default: latest)")
     parser.add_argument("--replay_buffer_size", type=int, default=100000,
                         help="Maximum size of the replay buffer")
+    parser.add_argument("--debug", action="store_true",
+                        help="Enable debug logging")
     
     # Network parameters
     parser.add_argument("--hidden_dim", type=int, default=128, 
@@ -624,8 +737,10 @@ if __name__ == "__main__":
         mcts_batch_size=args.mcts_batch_size,
         env_batch_size=args.env_batch_size,
         use_optimized_self_play=args.use_optimized_self_play,
+        use_batched_game_generation=args.use_batched_game_generation,
         training_iterations=args.training_iterations,
-        save_checkpoint_every=args.save_checkpoint_every
+        save_checkpoint_every=args.save_checkpoint_every,
+        debug=args.debug
     )
     
     # Load checkpoint if specified

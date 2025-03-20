@@ -138,6 +138,7 @@ class VectorizedNardeEnv:
             for move in valid_moves:
                 if move[1] == 'off':
                     # Bear off move (from_pos, 'off')
+                    # Multiply by 24 to ensure proper decoding back to from_pos
                     action_idx = move[0] * 24
                 else:
                     # Regular move (from_pos, to_pos)
@@ -185,7 +186,7 @@ class VectorizedNardeEnv:
         for action_idx, move_type in actions:
             from_pos = action_idx // 24
             if move_type == 1:
-                # Bear off move
+                # Bear off move - correct calculation of from_pos since we multiply by 24 in encoding
                 moves.append((from_pos, 'off'))
             else:
                 # Regular move
@@ -293,8 +294,18 @@ def batch_inference_step(env: VectorizedNardeEnv, network, explorer="random", nu
         for i, valid_actions in enumerate(valid_actions_batch):
             if valid_actions:
                 action_idx = np.random.choice(valid_actions)
+                # Get from_pos to determine move type
+                from_pos = action_idx // 24
                 # Determine if it's a bear-off move
-                move_type = 1 if action_idx % 24 == 0 else 0  # Simplified check
+                move_type = 0  # Default to regular move
+                
+                # Check if this is a bearing off move
+                unwrapped_env = env.envs[env.active_envs[i]].unwrapped
+                for move in unwrapped_env.game.get_valid_moves():
+                    if move[0] == from_pos and move[1] == 'off':
+                        move_type = 1
+                        break
+                
                 actions.append((action_idx, move_type))
             else:
                 # No valid actions, return dummy action (will be skipped)
@@ -318,12 +329,11 @@ def batch_inference_step(env: VectorizedNardeEnv, network, explorer="random", nu
                 action_idx = np.argmax([policy[a] for a in valid_actions])
                 actual_action = valid_actions[action_idx]
                 
-                # Determine if it's a bear-off move
-                # Would need more complex logic with actual environment access
-                move_type = 0  # Default to regular move
+                # Get from_pos to determine move type
                 from_pos = actual_action // 24
                 
                 # Check if this move should be a bear-off
+                move_type = 0  # Default to regular move
                 for move in env.envs[env.active_envs[i]].unwrapped.game.get_valid_moves():
                     if move[0] == from_pos and move[1] == 'off':
                         move_type = 1

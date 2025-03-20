@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Every time you create a new script you need to update the SCRIPTS.md and write why do we need that new script file, in what context it was used, wther we need it temporarily to debug something or we will be using it frequently (to benchmark other architectures, to generate content for training, to train AI)

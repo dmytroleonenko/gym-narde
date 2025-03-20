@@ -5,13 +5,12 @@ MuZero agent implementation for Narde.
 
 import torch
 import numpy as np
-from narde_benchmark import GenericNardeAgent
 from muzero.models import MuZeroNetwork
 from muzero.mcts import MCTS
 from muzero.training import get_valid_action_indices
 
 
-class MuZeroAgent(GenericNardeAgent):
+class MuZeroAgent:
     """
     MuZero agent for playing Narde.
     

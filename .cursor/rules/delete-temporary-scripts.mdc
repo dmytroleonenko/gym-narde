@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+if we created a script to test something and find out something or debug something and we finished with it - you must remove the script.

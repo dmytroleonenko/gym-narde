@@ -1,5 +1,10 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased] - 2025-03-20
 
 ### Added
@@ -28,6 +33,20 @@
   - Added timing and performance measurements for analysis
   - Added fallback to random selection when MuZero model loading fails
   - Added command-line option for random selection mode
+- Added batched game generation using GPU-optimized batched MCTS in final_complete_game_generation.py
+- Integrated batched game generation into the training pipeline with --use_batched_game_generation flag
+- Added BatchedGameSimulator class for efficient self-play with GPU acceleration
+- Implemented dynamic batch sizing to handle varying game completion rates 
+- Improved MPS compatibility by ensuring proper tensor type conversion for Apple Silicon
+- Added enhanced safety mechanisms to avoid infinite games:
+  - Limited all games to a maximum of 500 moves (increased from 300)
+  - Added detailed board state and dice roll logging when both players skip moves consecutively
+  - Implemented tracking of consecutive skips to detect potential game stall conditions
+- Added enhanced diagnostic logging for games without valid moves:
+  - Detailed dice roll and board state analysis for each game 
+  - Position-by-position attempt analysis for each die value
+  - Bearing off validation checks with explanations of bearing conditions
+  - Tracking of dice distribution patterns across games without valid moves
 
 ### Changed
 - Updated JAX configuration in `test_jax_muzero_networks.py`:
@@ -55,33 +74,44 @@
   - Optimized performance with caching of valid moves (~9x speedup)
   - Integrated fixes into the MuZero parallel training pipeline for high-quality training data
 - Modified `final_complete_game_generation.py` to use MuZero for both agents when the --random flag is not provided, enabling full MuZero vs MuZero gameplay
+- Updated all game simulation functions to use a consistent maximum move limit of 500 moves
+- Enhanced debugging output by tracking and logging detailed board state information when consecutive skip situations occur
+- Improved the debug output control in all scripts:
+  - Modified both `narde_env.py` and `final_complete_game_generation.py` to respect the `--debug` flag
+  - Updated the BatchedGameSimulator class to properly handle debug logging
+  - Added consistent debug parameter propagation throughout the training pipeline
+  - Made all debug print statements conditional on the debug flag being enabled
+  - Set default log level to INFO to keep output clean when debug isn't needed
+  - Changed verbose game action selection logs in BatchedGameSimulator from INFO to DEBUG level
+- Adjusted logging levels in BatchedGameSimulator from INFO to DEBUG to reduce verbosity
+- Added detailed logs for debugging dice values and valid moves when no moves are available
+- Clarified initial dice roll handling in environment initialization
 
 ### Fixed
-- Patched Haiku library to use `jax.extend.core` instead of deprecated `jax.core`
-- Fixed incompatibility with Apple Silicon by creating a CPU-based implementation
-- Resolved JAX deprecation warnings:
-  - `jax.core.JaxprEqn` → `jax.extend.core.JaxprEqn`
-  - `jax.core.Var` → `jax.extend.core.Var`
-  - `jax.core.Jaxpr` → `jax.extend.core.Jaxpr`
-- Increased test tolerance to handle minor numerical differences
-- Fixed model dimension mismatch in parallel training pipeline:
-  - Corrected input dimension from 24 to 28 to match NardeEnv's observation space
-  - Enhanced worker processes to robustly detect model dimensions from checkpoint weights
-  - Implemented automatic model recreation with matching dimensions when loading checkpoints
-  - Added explicit dimension storage in checkpoints for more reliable loading
-  - Improved dimension-related logging for easier debugging
-- Fixed hardcoded input dimensions in benchmark and test files:
-  - Updated `compare_muzero_implementations.py` to use correct observation dimension
-  - Corrected input dimension in `muzero/networks/test_jax_muzero_networks.py`
-  - Fixed `self_play_demo` function in `parallel_self_play.py` to use proper dimensions
-- Fixed temperature_drop handling in `muzero/training_optimized.py` to properly handle None values, preventing comparison errors when running with CUDA
-- Fixed directory creation in `train_muzero_optimized` function to handle empty checkpoint paths, preventing FileNotFoundError
-- Fixed critical issue with bearing off action encoding in Narde game generation:
-  - Corrected the action encoding for bearing off moves to multiply from_pos by 24
-  - Fixed decoding of bearing off moves in the environment
-  - Resolved premature game termination issue, ensuring games complete properly
-  - Properly tracked bearing off progress for both players
-  - Updated the vectorized environment implementation to use the fixed encoding
+- Patched Haiku library to use jax.flatten_util instead of deprecated tree_util.tree_flatten.
+- Resolved compatibility issues on Apple Silicon by working around environment limitations.
+- Addressed JAX deprecation warnings by updating function calls to match current API.
+- Increased test tolerance for numerical differences in JAX computation.
+- Fixed model dimension mismatches to maintain internal consistency.
+- Removed hardcoded input dimensions to allow flexible model configurations.
+- Corrected handling of temperature drops during training evaluation.
+- Fixed directory creation for saved models and trajectories.
+- Resolved critical issues with game generation leading to invalid data:
+  - Fixed action encoding issues affecting move translation.
+  - Resolved turn-skipping bug causing premature game termination.
+  - Corrected player perspective inconsistencies.
+  - Fixed dice synchronization between environment and game objects.
+  - Added proper tracking of remaining dice and valid moves.
+  - Added better error handling for edge cases.
+  - Fixed bearing off mechanics to properly end games.
+- Improved logging and handling of stalled games.
+- Fixed integration issues between batched game generation and the training pipeline.
+- Corrected misleading game completion messages.
+- Fixed premature game terminations.
+- Enhanced dice handling and move validation.
+- Modified game generation to rely solely on environment methods for valid move generation, removing manual generation throughout the codebase.
+- Verified all valid move generation is now exclusively handled by environment methods (env.game.get_valid_moves()), eliminating any manual valid move generation via nested loops.
+- Removed redundant diagnostics that attempted to second-guess the environment's valid move determination, fully trusting the environment's perspective on move validity.
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative
@@ -96,3 +126,5 @@
 - Automatic model evaluation provides insights into training progress and helps identify the best-performing model versions
 - Game generation now produces complete and realistic Narde games with proper bearing off mechanics
 - Training data quality is significantly improved with full game trajectories 
+- Enhanced safety mechanisms prevent infinite games and provide detailed debugging information when unusual game states occur
+- Batched game generation now works properly with the training pipeline, allowing for much faster game generation with GPU acceleration 
