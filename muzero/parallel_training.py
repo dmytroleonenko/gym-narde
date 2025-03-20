@@ -46,7 +46,7 @@ class TrainingPipeline:
     def __init__(
         self,
         base_dir: str = "muzero_training",
-        input_dim: int = 24,
+        input_dim: int = 28,
         action_dim: int = 576,
         hidden_dim: int = 128,
         latent_dim: int = 64,

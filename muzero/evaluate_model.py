@@ -43,37 +43,53 @@ class ModelEvaluator:
     """
     def __init__(
         self,
-        base_dir: str = "muzero_training",
-        input_dim: int = 24,
+        model_dir: str,
+        num_games: int = 100,
+        num_simulations: int = 50,
+        temperature: float = 0.0,
+        device: str = "auto",
+        input_dim: int = 28,
         action_dim: int = 576,
         hidden_dim: int = 128,
-        latent_dim: int = 64,
-        device: Optional[str] = None
+        opponent: str = "random",
+        save_dir: Optional[str] = None,
+        log_file: Optional[str] = None
     ):
         """
-        Initialize the model evaluator.
+        Initialize the evaluator.
         
         Args:
-            base_dir: Base directory for model checkpoints and evaluation results
+            model_dir: Directory containing model checkpoints
+            num_games: Number of evaluation games to play
+            num_simulations: Number of MCTS simulations per move
+            temperature: Temperature for action selection (0 for deterministic)
+            device: Device to use (cpu, cuda, mps, or auto)
             input_dim: Input dimension for the MuZero network
-            action_dim: Action dimension for the MuZero network 
+            action_dim: Action dimension for the MuZero network
             hidden_dim: Hidden dimension for the MuZero network
-            latent_dim: Latent dimension for the MuZero network
-            device: Device to use for evaluation (default: auto-detect)
+            opponent: Opponent type ('random' or 'self')
+            save_dir: Directory to save evaluation results
+            log_file: File path for logging
         """
-        self.base_dir = base_dir
+        self.model_dir = model_dir
+        self.num_games = num_games
+        self.num_simulations = num_simulations
+        self.temperature = temperature
+        self.device = device
         self.input_dim = input_dim
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
-        self.latent_dim = latent_dim
+        self.opponent = opponent
+        self.save_dir = save_dir
+        self.log_file = log_file
         
         # Set up directories
-        self.models_dir = os.path.join(base_dir, "models")
-        self.eval_dir = os.path.join(base_dir, "evaluation")
+        self.models_dir = os.path.join(model_dir, "models")
+        self.eval_dir = os.path.join(model_dir, "evaluation")
         os.makedirs(self.eval_dir, exist_ok=True)
         
         # Set device
-        if device is None:
+        if device == "auto":
             if torch.cuda.is_available():
                 self.device = "cuda"
                 logger.info("Using CUDA for evaluation")

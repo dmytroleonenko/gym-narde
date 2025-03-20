@@ -40,14 +40,15 @@ from muzero.networks.training_utils import (
 )
 
 # Constants for testing
-INPUT_DIM = 24  # Narde board size
-HIDDEN_DIM = 64  # Smaller for faster tests
+BATCH_SIZE = 2
+ACTION_DIM = 576  # 24x24 possible moves for Narde
+HIDDEN_DIM = 64
+NUM_CHANNELS = 64
+NUM_BLOCKS = 2
+INPUT_DIM = 28  # Actual observation space size for Narde
 LATENT_DIM = 32
-ACTION_DIM = 30
-NUM_BINS = 51
 MIN_VALUE = -1.0
 MAX_VALUE = 1.0
-BATCH_SIZE = 4
 SEQ_LENGTH = 3
 
 

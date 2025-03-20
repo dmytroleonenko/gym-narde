@@ -121,7 +121,7 @@ def play_game_worker(game_id: int, network_weights: Dict, num_simulations: int,
         
         # Recreate the network
         from muzero.models import MuZeroNetwork
-        input_dim = 24  # Board size for Narde
+        input_dim = 28  # Actual observation space size for Narde
         action_dim = 576  # 24x24 possible moves
         
         # Detect hidden_dim from weights - first look for representation_network.fc.6.bias
@@ -314,6 +314,45 @@ def load_games_from_directory(save_dir: str, limit: Optional[int] = None) -> Lis
     
     logger.info(f"Successfully loaded {len(games)} games")
     return games
+
+
+def get_game_stats(filepath: str) -> Dict[str, Any]:
+    """
+    Extract basic statistics from a saved game.
+    
+    Args:
+        filepath: Path to saved game
+        
+    Returns:
+        Dictionary with game statistics
+    """
+    game_history = load_game_history(filepath)
+    
+    # Basic stats
+    stats = {
+        "moves": len(game_history),
+        "final_reward": game_history[-1][2] if game_history else 0,
+    }
+    
+    return stats
+
+
+def self_play_demo(num_games: int = 1, num_simulations: int = 50, save_dir: Optional[str] = None):
+    """
+    Generate games using self-play and print statistics.
+    For demonstration purposes.
+    """
+    # Create environment and network
+    network = MuZeroNetwork(input_dim=28, action_dim=576)
+    
+    # Generate games
+    game_paths = generate_games_parallel(
+        network=network,
+        num_games=num_games,
+        num_simulations=num_simulations,
+        temperature=1.0,
+        save_dir=save_dir
+    )
 
 
 if __name__ == "__main__":

@@ -43,14 +43,9 @@ def measure_memory_usage():
 
 def compare_self_play(num_games=10, num_simulations=50):
     """
-    Compare the performance of original and optimized self-play.
+    Compare the self-play performance of original and optimized implementations.
     
-    Args:
-        num_games: Number of games to play
-        num_simulations: Number of MCTS simulations per move
-        
-    Returns:
-        Dictionary with comparison metrics
+    Returns a dictionary with performance metrics.
     """
     print("\n--- Self-Play Performance Comparison ---")
     
@@ -58,7 +53,7 @@ def compare_self_play(num_games=10, num_simulations=50):
     dtype = torch.bfloat16
     
     # Create a network for both implementations
-    input_dim = 24  # Board size for Narde
+    input_dim = 28  # Actual observation space size for Narde
     action_dim = 576  # 24x24 possible moves
     network = MuZeroNetwork(input_dim, action_dim)
     
@@ -183,7 +178,7 @@ def compare_training_step(batch_size=32, num_epochs=5):
     dtype = torch.bfloat16
     
     # Create a network for both implementations
-    input_dim = 24  # Board size for Narde
+    input_dim = 28  # Actual observation space size for Narde
     action_dim = 576  # 24x24 possible moves
     network_original = MuZeroNetwork(input_dim, action_dim)
     network_optimized = MuZeroNetwork(input_dim, action_dim)
@@ -470,6 +465,72 @@ def run_full_comparison():
         # System memory
         total_memory = psutil.virtual_memory().total / (1024 * 1024 * 1024)  # GB
         f.write(f"System memory: {total_memory:.2f} GB\n")
+
+
+def benchmark_muzero_original(batch_size=32, num_batches=100, device='cpu', dtype=torch.float32):
+    """Benchmark the original MuZero implementation."""
+    
+    logger.info("Benchmarking original MuZero implementation...")
+    
+    # Create network
+    input_dim = 28  # Observation space size for Narde
+    action_dim = 576  # 24x24 possible moves
+    network = MuZeroNetwork(input_dim, action_dim)
+    network.to(device)
+    
+    # Create optimizer
+    optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
+    
+    # Run benchmark
+    start_time = time.time()
+    start_memory = torch.cuda.memory_allocated(device) if device == 'cuda' else psutil.Process().memory_info().rss
+    
+    total_losses = []
+    
+    for _ in range(num_batches):
+        # Generate random batch
+        observations = torch.randn(batch_size, input_dim, dtype=dtype, device=device)
+        actions = torch.randint(0, action_dim, (batch_size,), device=device)
+        target_values = torch.randn(batch_size, dtype=dtype, device=device)
+        target_policies = torch.rand(batch_size, action_dim, dtype=dtype, device=device)
+        target_policies = target_policies / target_policies.sum(dim=1, keepdim=True)
+        target_rewards = torch.randn(batch_size, dtype=dtype, device=device)
+        
+        # Forward pass
+        optimizer.zero_grad()
+        hidden_state = network.representation_network(observations)
+        value, policy_logits = network.prediction_network(hidden_state)
+        
+        # Create action one-hot encoding
+        action_onehot = torch.zeros(batch_size, action_dim, device=device)
+        for i, a in enumerate(actions):
+            action_onehot[i, a] = 1.0
+        
+        # Dynamics network prediction
+        next_hidden_state, reward = network.dynamics_network(hidden_state, action_onehot)
+        next_value, next_policy_logits = network.prediction_network(next_hidden_state)
+        
+        # Compute losses
+        value_loss = F.mse_loss(value.squeeze(-1), target_values)
+        reward_loss = F.mse_loss(reward.squeeze(-1), target_rewards)
+        policy_loss = -torch.mean(torch.sum(target_policies * F.log_softmax(policy_logits, dim=1), dim=1))
+        
+        loss = value_loss + reward_loss + policy_loss
+        
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+        
+        total_losses.append(loss.item())
+    
+    end_time = time.time()
+    end_memory = torch.cuda.memory_allocated(device) if device == 'cuda' else psutil.Process().memory_info().rss
+    
+    return {
+        'time': end_time - start_time,
+        'memory': end_memory - start_memory,
+        'avg_loss': sum(total_losses) / len(total_losses)
+    }
 
 
 if __name__ == "__main__":

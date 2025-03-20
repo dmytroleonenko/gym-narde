@@ -42,6 +42,16 @@
   - `jax.core.Var` → `jax.extend.core.Var`
   - `jax.core.Jaxpr` → `jax.extend.core.Jaxpr`
 - Increased test tolerance to handle minor numerical differences
+- Fixed model dimension mismatch in parallel training pipeline:
+  - Corrected input dimension from 24 to 28 to match NardeEnv's observation space
+  - Enhanced worker processes to robustly detect model dimensions from checkpoint weights
+  - Implemented automatic model recreation with matching dimensions when loading checkpoints
+  - Added explicit dimension storage in checkpoints for more reliable loading
+  - Improved dimension-related logging for easier debugging
+- Fixed hardcoded input dimensions in benchmark and test files:
+  - Updated `compare_muzero_implementations.py` to use correct observation dimension
+  - Corrected input dimension in `muzero/networks/test_jax_muzero_networks.py`
+  - Fixed `self_play_demo` function in `parallel_self_play.py` to use proper dimensions
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative
