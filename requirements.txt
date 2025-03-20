@@ -1,6 +1,6 @@
 torch>=1.13.0
 numpy>=1.20.0
-gym-narde
+gymnasium>=1.1.1
 pygame  # Likely needed for visualization
 matplotlib  # For plotting metrics
 tqdm  # For progress bars
