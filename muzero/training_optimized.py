@@ -14,6 +14,7 @@ from muzero.batch_collector import AsyncBatchCollector
 from muzero.mcts_batched import BatchedMCTS, run_batched_mcts
 from muzero.vectorized_env import VectorizedNardeEnv, create_vectorized_env
 from muzero.replay import ReplayBuffer
+from typing import List, Tuple, Dict, Any, Optional
 
 # Set multiprocessing start method to 'spawn' for CUDA compatibility
 if torch.cuda.is_available():
@@ -68,10 +69,12 @@ def train_muzero_optimized(
         print(f"Using {device_str} for training")
     
     # Create directories if they don't exist
-    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-    os.makedirs(log_dir, exist_ok=True)
+    if checkpoint_path and os.path.dirname(checkpoint_path):
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
     
     # Set up tensorboard
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=log_dir)
     
     # Create model
@@ -250,7 +253,7 @@ def optimized_self_play(
     mcts_batch_size: int = 16,
     env_batch_size: int = 16,
     temperature: float = 1.0,
-    temperature_drop: int = 10,
+    temperature_drop: Optional[int] = 10,
     dirichlet_alpha: float = 0.3,
     exploration_fraction: float = 0.25,
     device: str = "cpu"
@@ -325,7 +328,9 @@ def optimized_self_play(
             obs_tensor = torch.FloatTensor(obs).to(device)
             
             # Use temperature based on move count
-            current_temperature = 0.0 if move_counts[i] >= temperature_drop else temperature
+            current_temperature = temperature
+            if temperature_drop is not None and move_counts[i] >= temperature_drop:
+                current_temperature = 0.0
             
             # Run MCTS to get policy
             policy = mcts.run(
@@ -539,7 +544,8 @@ def train_muzero(
     replay_buffer = ReplayBuffer(capacity=100000)
     
     # Create checkpoint directory if it doesn't exist
-    os.makedirs(checkpoint_dir, exist_ok=True)
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
     
     # Training metrics history
     metrics_history = []

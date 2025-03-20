@@ -34,6 +34,7 @@
 - Updated test fixtures to properly handle JAX key splitting
 - Improved training workflow to alternate between game generation and model training in iterations
 - Reduced log verbosity in `muzero/parallel_self_play.py` by moving worker network initialization messages to DEBUG level
+- Removed temporary test code after verifying fixes for temperature_drop handling and directory creation
 
 ### Fixed
 - Patched Haiku library to use `jax.extend.core` instead of deprecated `jax.core`
@@ -53,6 +54,8 @@
   - Updated `compare_muzero_implementations.py` to use correct observation dimension
   - Corrected input dimension in `muzero/networks/test_jax_muzero_networks.py`
   - Fixed `self_play_demo` function in `parallel_self_play.py` to use proper dimensions
+- Fixed temperature_drop handling in `muzero/training_optimized.py` to properly handle None values, preventing comparison errors when running with CUDA
+- Fixed directory creation in `train_muzero_optimized` function to handle empty checkpoint paths, preventing FileNotFoundError
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative

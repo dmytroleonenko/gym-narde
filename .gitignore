@@ -57,3 +57,4 @@ venv.bak/
 .LSOverride
 .aider*
 *.log
+logs/
