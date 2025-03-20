@@ -33,6 +33,7 @@
 - Enhanced `vectorized_model_unroll` in `training_utils.py` to include RNG key parameter
 - Updated test fixtures to properly handle JAX key splitting
 - Improved training workflow to alternate between game generation and model training in iterations
+- Reduced log verbosity in `muzero/parallel_self_play.py` by moving worker network initialization messages to DEBUG level
 
 ### Fixed
 - Patched Haiku library to use `jax.extend.core` instead of deprecated `jax.core`

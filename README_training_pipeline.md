@@ -208,3 +208,41 @@ The system logs comprehensive metrics:
   - GPU/MPS utilization
 
 All logs are saved to the `logs` directory within your base directory. 
+
+## Configuring Logging Verbosity
+
+The training pipeline has various logging levels to control output verbosity:
+
+### Log Levels
+
+- **ERROR**: Critical issues that prevent execution
+- **WARNING**: Potential problems that don't stop execution
+- **INFO**: General progress information (default)
+- **DEBUG**: Detailed technical information for troubleshooting
+
+### Changing Log Level
+
+You can adjust the log level using Python's logging module:
+
+```python
+import logging
+logging.getLogger('MuZero-Worker').setLevel(logging.WARNING)  # Suppress worker messages
+logging.getLogger('MuZero-Parallel').setLevel(logging.INFO)   # Keep parallel execution info
+```
+
+For command-line usage, you can set the environment variable:
+
+```bash
+# Suppress all but warnings and errors
+LOGLEVEL=WARNING python -m muzero.parallel_training
+
+# Verbose output for debugging
+LOGLEVEL=DEBUG python -m muzero.parallel_training
+```
+
+### Default Behaviors
+
+- Worker network initialization messages are at DEBUG level to avoid console clutter
+- Game generation progress is logged at INFO level every 10 games
+- Hardware utilization warnings are at WARNING level
+- Training metrics and performance statistics are at INFO level 

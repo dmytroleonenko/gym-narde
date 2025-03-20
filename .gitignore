@@ -6,6 +6,7 @@ __pycache__/
 
 #trained models
 *.pth
+muzero_training/
 
 # Distribution / packaging
 .Python

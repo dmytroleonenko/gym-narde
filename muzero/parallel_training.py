@@ -31,11 +31,17 @@ from muzero.parallel_self_play import (
 )
 
 # Configure logging
+log_level_name = os.environ.get('LOGLEVEL', 'INFO').upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("MuZero-Pipeline")
+
+# Set specific logger levels
+worker_logger = logging.getLogger("MuZero-Worker")
+worker_logger.setLevel(max(log_level, logging.INFO))  # Ensure worker logs are at least INFO
 
 
 class TrainingPipeline:
@@ -49,18 +55,20 @@ class TrainingPipeline:
         input_dim: int = 28,
         action_dim: int = 576,
         hidden_dim: int = 128,
-        latent_dim: int = 64,
-        batch_size: int = 128,
         lr: float = 0.001,
         weight_decay: float = 1e-4,
+        batch_size: int = 128,
+        replay_buffer_size: int = 100000,
         games_per_iteration: int = 2000,
         num_simulations: int = 50,
         num_epochs: int = 10,
-        num_workers: Optional[int] = None,
-        device: Optional[str] = None,
         temperature: float = 1.0,
         temperature_drop: Optional[int] = None,
-        mcts_batch_size: int = 16,
+        device: str = "auto",
+        num_workers: Optional[int] = None,
+        mcts_batch_size: int = 8,
+        env_batch_size: int = 16,
+        use_optimized_self_play: bool = False,
         training_iterations: int = 10,
         save_checkpoint_every: int = 1
     ):
@@ -68,40 +76,45 @@ class TrainingPipeline:
         Initialize the training pipeline.
         
         Args:
-            base_dir: Base directory for saving games and models
-            input_dim: Input dimension for the MuZero network
-            action_dim: Action dimension for the MuZero network
-            hidden_dim: Hidden dimension for the MuZero network
-            latent_dim: Latent dimension for the MuZero network
-            batch_size: Batch size for training
+            base_dir: Directory for saving checkpoints and games
+            input_dim: Dimension of observation space
+            action_dim: Dimension of action space
+            hidden_dim: Dimension of hidden layers
             lr: Learning rate
-            weight_decay: Weight decay
+            weight_decay: Weight decay coefficient
+            batch_size: Batch size for training
+            replay_buffer_size: Maximum replay buffer size
             games_per_iteration: Number of games to generate per iteration
             num_simulations: Number of MCTS simulations per move
             num_epochs: Number of training epochs per iteration
-            num_workers: Number of worker processes (default: auto-detect)
-            device: Device to use (default: auto-detect)
             temperature: Temperature for action selection
-            temperature_drop: Move number after which temperature is dropped to 0
-            mcts_batch_size: Batch size for MCTS simulations
-            training_iterations: Number of training iterations
+            temperature_drop: Move number to drop temperature to 0
+            device: Device to use (cpu, cuda, mps, or auto)
+            num_workers: Number of worker processes
+            mcts_batch_size: Batch size for batched MCTS when using optimized self-play
+            env_batch_size: Batch size for vectorized environment when using optimized self-play
+            use_optimized_self_play: Whether to use the optimized self-play implementation
+            training_iterations: Number of training iterations to run
             save_checkpoint_every: Save checkpoint every N iterations
         """
         self.base_dir = base_dir
         self.input_dim = input_dim
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
-        self.latent_dim = latent_dim
-        self.batch_size = batch_size
         self.lr = lr
         self.weight_decay = weight_decay
+        self.batch_size = batch_size
+        self.replay_buffer_size = replay_buffer_size
         self.games_per_iteration = games_per_iteration
         self.num_simulations = num_simulations
         self.num_epochs = num_epochs
-        self.num_workers = get_optimal_worker_count(num_workers)
         self.temperature = temperature
         self.temperature_drop = temperature_drop
+        self.device = device
+        self.num_workers = get_optimal_worker_count(num_workers)
         self.mcts_batch_size = mcts_batch_size
+        self.env_batch_size = env_batch_size
+        self.use_optimized_self_play = use_optimized_self_play
         self.training_iterations = training_iterations
         self.save_checkpoint_every = save_checkpoint_every
         
@@ -114,7 +127,7 @@ class TrainingPipeline:
         os.makedirs(self.logs_dir, exist_ok=True)
         
         # Set device
-        if device is None:
+        if device == "auto":
             if torch.cuda.is_available():
                 self.device = "cuda"
                 logger.info("Using CUDA for training")
@@ -153,7 +166,7 @@ class TrainingPipeline:
         }
         
         # Create replay buffer
-        self.replay_buffer = ReplayBuffer(capacity=1000000)
+        self.replay_buffer = ReplayBuffer(capacity=replay_buffer_size)
         
         logger.info(f"Initialized training pipeline with {self.num_workers} workers")
         logger.info(f"Will generate {games_per_iteration} games per iteration")
@@ -279,23 +292,102 @@ class TrainingPipeline:
         
         logger.info(f"Generating {self.games_per_iteration} games for iteration {iteration}")
         logger.info(f"Network dimensions: input_dim={self.input_dim}, action_dim={self.action_dim}, hidden_dim={self.hidden_dim}")
+        
+        # Performance tips
+        logger.info("Performance tips:")
+        logger.info(" - Reduce num_simulations to speed up game generation")
+        logger.info(" - Increase num_workers to utilize more CPU cores")
+        logger.info(" - Set mcts_batch_size higher for better GPU utilization")
+        logger.info(" - For GPU acceleration, use optimized_self_play with CUDA instead of parallel_self_play")
+        
         start_time = time.time()
         
-        # Move network to CPU and get state dict
-        cpu_network = self.network.to("cpu")
+        # If this is just the first iteration with no trained model yet,
+        # we can use a smaller number of simulations to speed up initial game generation
+        if iteration == 1 and not hasattr(self, '_checkpoint_loaded'):
+            original_simulations = self.num_simulations
+            reduced_simulations = min(20, original_simulations)  # Use at most 20 simulations for first iteration
+            logger.info(f"First iteration: Reducing simulations from {original_simulations} to {reduced_simulations} for faster bootstrap")
+            self.num_simulations = reduced_simulations
         
-        # Generate games
-        game_paths = generate_games_parallel(
-            network=cpu_network,
-            num_games=self.games_per_iteration,
-            num_simulations=self.num_simulations,
-            temperature=self.temperature,
-            save_dir=iteration_games_dir,
-            num_workers=self.num_workers,
-            temperature_drop=self.temperature_drop
-        )
+        # Move network to appropriate device
+        device = "cpu"  # Default for parallel game generation
         
-        # Move network back to device
+        # Check if optimized_self_play should be used (if we have GPU and the option is enabled)
+        use_optimized = False
+        if self.use_optimized_self_play:
+            if torch.cuda.is_available():
+                device = "cuda"
+                use_optimized = True
+                logger.info("Using optimized_self_play with GPU acceleration")
+            else:
+                logger.warning("use_optimized_self_play is enabled but no CUDA device available, falling back to parallel CPU version")
+        
+        # Move the network to the appropriate device
+        network_for_games = self.network.to(device)
+        
+        if use_optimized:
+            from muzero.training_optimized import optimized_self_play
+            from muzero.mcts_batched import BatchedMCTS
+            from muzero.vectorized_env import VectorizedNardeEnv
+            
+            # Generate games using optimized implementation
+            logger.info(f"Using optimized self-play with GPU acceleration (mcts_batch_size={self.mcts_batch_size}, env_batch_size={self.env_batch_size})")
+            
+            # Create subdirectories for each batch
+            num_batches = (self.games_per_iteration + self.env_batch_size - 1) // self.env_batch_size
+            game_paths = []
+            
+            for batch in range(num_batches):
+                batch_size = min(self.env_batch_size, self.games_per_iteration - batch * self.env_batch_size)
+                if batch_size <= 0:
+                    break
+                    
+                batch_dir = os.path.join(iteration_games_dir, f"batch_{batch}")
+                os.makedirs(batch_dir, exist_ok=True)
+                
+                logger.info(f"Generating batch {batch+1}/{num_batches} with {batch_size} games")
+                batch_game_histories = optimized_self_play(
+                    network=network_for_games,
+                    num_games=batch_size,
+                    num_simulations=self.num_simulations,
+                    mcts_batch_size=self.mcts_batch_size,
+                    env_batch_size=batch_size,
+                    temperature=self.temperature,
+                    temperature_drop=self.temperature_drop,
+                    device=device
+                )
+                
+                # Save the games
+                for i, game_history in enumerate(batch_game_histories):
+                    game_id = batch * self.env_batch_size + i
+                    filepath = save_game_history(game_history, batch_dir, game_id)
+                    game_paths.append(filepath)
+                    
+                # Log progress
+                games_so_far = batch * self.env_batch_size + batch_size
+                elapsed = time.time() - start_time
+                games_per_second = games_so_far / elapsed
+                logger.info(f"Completed {games_so_far}/{self.games_per_iteration} games " 
+                           f"({games_per_second:.2f} games/s)")
+        else:
+            # Generate games using standard parallel implementation
+            game_paths = generate_games_parallel(
+                network=network_for_games,
+                num_games=self.games_per_iteration,
+                num_simulations=self.num_simulations,
+                temperature=self.temperature,
+                save_dir=iteration_games_dir,
+                num_workers=self.num_workers,
+                temperature_drop=self.temperature_drop
+            )
+        
+        # Restore original num_simulations if it was reduced
+        if iteration == 1 and not hasattr(self, '_checkpoint_loaded'):
+            self.num_simulations = original_simulations
+            logger.info(f"Restored num_simulations to {original_simulations}")
+        
+        # Move network back to training device
         self.network = self.network.to(self.device)
         
         generation_time = time.time() - start_time
@@ -429,25 +521,34 @@ def parse_arguments():
                         help="Number of training epochs per iteration")
     parser.add_argument("--num_workers", type=int, default=None, 
                         help="Number of worker processes (default: auto-detect)")
-    parser.add_argument("--device", type=str, default=None, 
-                        help="Device to use (default: auto-detect)")
+    parser.add_argument("--device", type=str, default="auto", 
+                        help="Device to use (cpu, cuda, mps, or auto)")
     parser.add_argument("--temperature", type=float, default=1.0, 
                         help="Temperature for action selection")
     parser.add_argument("--temperature_drop", type=int, default=None, 
                         help="Move number after which temperature is dropped to 0")
-    parser.add_argument("--mcts_batch_size", type=int, default=16, 
+    parser.add_argument("--mcts_batch_size", type=int, default=8, 
                         help="Batch size for MCTS simulations")
+    parser.add_argument("--env_batch_size", type=int, default=16,
+                        help="Batch size for vectorized environments (only with optimized self-play)")
+    parser.add_argument("--use_optimized_self_play", action="store_true",
+                        help="Use the optimized self-play implementation with batched MCTS")
     parser.add_argument("--training_iterations", type=int, default=10, 
                         help="Number of training iterations")
     parser.add_argument("--save_checkpoint_every", type=int, default=1, 
                         help="Save checkpoint every N iterations")
     parser.add_argument("--load_iteration", type=int, default=None, 
                         help="Load checkpoint from specific iteration (default: latest)")
+    parser.add_argument("--replay_buffer_size", type=int, default=100000,
+                        help="Maximum size of the replay buffer")
     
     # Network parameters
     parser.add_argument("--hidden_dim", type=int, default=128, 
                         help="Hidden dimension for the MuZero network")
-    # Note: latent_dim is kept for backwards compatibility but not used in current MuZeroNetwork implementation
+    parser.add_argument("--input_dim", type=int, default=28,
+                        help="Input dimension for observation space")
+    parser.add_argument("--action_dim", type=int, default=576,
+                        help="Action dimension (24x24 possible moves)")
     
     return parser.parse_args()
 
@@ -458,8 +559,11 @@ if __name__ == "__main__":
     # Initialize the pipeline
     pipeline = TrainingPipeline(
         base_dir=args.base_dir,
+        input_dim=args.input_dim,
+        action_dim=args.action_dim,
         hidden_dim=args.hidden_dim,
         batch_size=args.batch_size,
+        replay_buffer_size=args.replay_buffer_size,
         lr=args.lr,
         weight_decay=args.weight_decay,
         games_per_iteration=args.games_per_iteration,
@@ -470,6 +574,8 @@ if __name__ == "__main__":
         temperature=args.temperature,
         temperature_drop=args.temperature_drop,
         mcts_batch_size=args.mcts_batch_size,
+        env_batch_size=args.env_batch_size,
+        use_optimized_self_play=args.use_optimized_self_play,
         training_iterations=args.training_iterations,
         save_checkpoint_every=args.save_checkpoint_every
     )

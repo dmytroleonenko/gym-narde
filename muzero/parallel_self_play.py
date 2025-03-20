@@ -70,9 +70,23 @@ def save_game_history(game_history: List[Tuple], save_dir: str, game_id: int) ->
     filename = f"game_{game_id}_{timestamp}.pkl"
     filepath = os.path.join(save_dir, filename)
     
-    # Save the game
+    # Convert numpy arrays to make them more efficiently serializable
+    optimized_history = []
+    for transition in game_history:
+        observation, action, reward, policy = transition
+        
+        # Convert numpy arrays to simpler types
+        if isinstance(observation, np.ndarray):
+            observation = observation.astype(np.float16)
+        
+        if isinstance(policy, np.ndarray):
+            policy = policy.astype(np.float16)
+            
+        optimized_history.append((observation, action, reward, policy))
+    
+    # Save the game using the highest protocol for better performance
     with open(filepath, 'wb') as f:
-        pickle.dump(game_history, f)
+        pickle.dump(optimized_history, f, protocol=pickle.HIGHEST_PROTOCOL)
         
     return filepath
 
@@ -130,19 +144,19 @@ def play_game_worker(game_id: int, network_weights: Dict, num_simulations: int,
             if key in network_weights:
                 tensor_shape = network_weights[key].shape
                 hidden_dim = tensor_shape[0]
-                logger.info(f"Game worker {game_id}: Detected hidden_dim={hidden_dim} from {key} with shape {tensor_shape}")
+                logger.debug(f"Game worker {game_id}: Detected hidden_dim={hidden_dim} from {key} with shape {tensor_shape}")
                 break
                 
         if hidden_dim is None:
             # Fallback to default used in MuZeroNetwork
             hidden_dim = 256
-            logger.info(f"Game worker {game_id}: Using default hidden_dim={hidden_dim}")
+            logger.debug(f"Game worker {game_id}: Using default hidden_dim={hidden_dim}")
         
-        logger.info(f"Game worker {game_id}: Creating network with hidden_dim={hidden_dim}")
+        logger.debug(f"Game worker {game_id}: Creating network with hidden_dim={hidden_dim}")
         network = MuZeroNetwork(input_dim, action_dim, hidden_dim=hidden_dim)
         
         # Load the weights
-        logger.info(f"Game worker {game_id}: Loading weights")
+        logger.debug(f"Game worker {game_id}: Loading weights")
         network.load_state_dict(network_weights)
         network = network.to(device)
         
@@ -360,12 +374,18 @@ if __name__ == "__main__":
     from muzero.models import MuZeroNetwork
     
     # Create a network
-    network = MuZeroNetwork(input_dim=24, action_dim=576)
+    network = MuZeroNetwork(input_dim=28, action_dim=576)
     
     # Generate games
     save_dir = "games"
     num_games = 4
     num_workers = 2
+    
+    print("Performance tips:")
+    print("1. Use more workers: Try setting num_workers to match your CPU cores - 1")
+    print("2. Reduce num_simulations for faster but less accurate MCTS (default is 50)")
+    print("3. Use batched_mcts=True for GPU acceleration if available")
+    print("4. Consider using the optimized_self_play function when on GPU")
     
     game_paths = generate_games_parallel(
         network=network,
