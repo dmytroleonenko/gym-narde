@@ -27,8 +27,10 @@ from muzero.training_optimized import optimized_training_epoch, train_muzero
 from muzero.parallel_self_play import (
     generate_games_parallel,
     load_games_from_directory,
-    get_optimal_worker_count
+    get_optimal_worker_count,
+    save_game_history
 )
+from muzero.training_optimized import optimized_self_play
 
 # Configure logging
 log_level_name = os.environ.get('LOGLEVEL', 'INFO').upper()
@@ -326,15 +328,98 @@ class TrainingPipeline:
         # Move the network to the appropriate device
         network_for_games = self.network.to(device)
         
-        if use_optimized:
-            from muzero.training_optimized import optimized_self_play
-            from muzero.mcts_batched import BatchedMCTS
-            from muzero.vectorized_env import VectorizedNardeEnv
+        if self.use_optimized_self_play and torch.cuda.is_available():
+            # Use optimized self-play with GPU acceleration
+            logger.info("Using optimized_self_play with GPU acceleration")
             
-            # Generate games using optimized implementation
-            logger.info(f"Using optimized self-play with GPU acceleration (mcts_batch_size={self.mcts_batch_size}, env_batch_size={self.env_batch_size})")
+            # Calculate batch configuration
+            games_per_worker = self.games_per_iteration // self.num_workers
+            remainder = self.games_per_iteration % self.num_workers
             
-            # Create subdirectories for each batch
+            # Use ProcessPoolExecutor to parallelize the generation tasks
+            network_for_games = self.network.to('cpu')  # Move to CPU for pickling
+            network_weights = network_for_games.state_dict()
+            
+            logger.info(f"Using optimized self-play with {self.num_workers} workers and GPU acceleration")
+            logger.info(f"Each worker will generate ~{games_per_worker} games")
+            
+            import concurrent.futures
+            from functools import partial
+            
+            # Define worker function to run optimized_self_play in parallel
+            def optimized_self_play_worker(worker_id, network_weights, num_games, save_dir, device='cuda'):
+                # Create a new network instance
+                from muzero.models import MuZeroNetwork
+                network = MuZeroNetwork(input_dim=28, action_dim=576, hidden_dim=self.hidden_dim)
+                network.load_state_dict(network_weights)
+                network = network.to(device)
+                
+                # Worker specific directory
+                worker_dir = os.path.join(save_dir, f"worker_{worker_id}")
+                os.makedirs(worker_dir, exist_ok=True)
+                
+                # Run optimized self-play
+                batch_game_histories = optimized_self_play(
+                    network=network,
+                    num_games=num_games,
+                    num_simulations=self.num_simulations,
+                    mcts_batch_size=self.mcts_batch_size,
+                    env_batch_size=min(num_games, self.env_batch_size),
+                    temperature=self.temperature,
+                    temperature_drop=self.temperature_drop,
+                    device=device
+                )
+                
+                # Save games and return paths
+                game_paths = []
+                for i, game_history in enumerate(batch_game_histories):
+                    filepath = save_game_history(game_history, worker_dir, i)
+                    game_paths.append(filepath)
+                
+                return game_paths
+
+            # Distribute games across workers
+            start_time = time.time()
+            game_paths = []
+            
+            with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+                # Create tasks for each worker
+                futures = []
+                for worker_id in range(self.num_workers):
+                    # Distribute games evenly, with remainder going to early workers
+                    worker_games = games_per_worker + (1 if worker_id < remainder else 0)
+                    if worker_games > 0:
+                        future = executor.submit(
+                            optimized_self_play_worker,
+                            worker_id,
+                            network_weights,
+                            worker_games,
+                            iteration_games_dir,
+                            'cuda'  # Each worker uses the GPU
+                        )
+                        futures.append(future)
+                
+                # Process results as they complete
+                completed = 0
+                for future in concurrent.futures.as_completed(futures):
+                    worker_paths = future.result()
+                    game_paths.extend(worker_paths)
+                    completed += len(worker_paths)
+                    
+                    # Log progress
+                    elapsed = time.time() - start_time
+                    games_per_second = completed / elapsed if elapsed > 0 else 0
+                    logger.info(f"Completed {completed}/{self.games_per_iteration} games " 
+                               f"({games_per_second:.2f} games/s)")
+                               
+            # Move network back to training device
+            self.network = self.network.to(self.device)
+        
+        elif self.use_optimized_self_play:
+            # Fallback to standard optimized self-play on CPU
+            logger.warning("use_optimized_self_play is enabled but no CUDA device available, falling back to parallel CPU version")
+            
+            # Calculate number of batches
             num_batches = (self.games_per_iteration + self.env_batch_size - 1) // self.env_batch_size
             game_paths = []
             
