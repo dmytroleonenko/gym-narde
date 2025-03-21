@@ -25,6 +25,53 @@ def create_agent(agent_class_path, agent_args_str, model_path=None, name_suffix=
     Returns:
         An instance of the specified agent class
     """
+    # Special case for MuZero agent
+    if agent_class_path == "muzero_agents.MuZeroAgent" or agent_class_path.endswith(".MuZeroAgent"):
+        from muzero.agent import MuZeroAgent
+        from benchmarks.narde_benchmark import GenericNardeAgent
+        
+        # Create a wrapper that adapts MuZeroAgent to the benchmark interface
+        class MuZeroAgentAdapter(GenericNardeAgent):
+            def __init__(self, model_path, name="MuZeroAgent", num_simulations=50, temperature=0.0, device="auto"):
+                self._name = name
+                self._agent = MuZeroAgent(
+                    model_path=model_path,
+                    num_simulations=num_simulations,
+                    temperature=temperature,
+                    device=device,
+                    name=name
+                )
+            
+            @property
+            def name(self):
+                return self._name
+                
+            def reset(self):
+                if hasattr(self._agent, 'reset'):
+                    self._agent.reset()
+                    
+            def select_action(self, env, state):
+                return self._agent.select_action(env, state)
+                
+        # Parse additional arguments
+        agent_args = {"model_path": model_path, "name": f"MuZeroAgent{name_suffix}"}
+        if agent_args_str:
+            for arg_pair in agent_args_str.split(','):
+                if '=' in arg_pair:
+                    key, value = arg_pair.split('=', 1)
+                    # Try to convert to appropriate types
+                    if value.lower() == 'true':
+                        value = True
+                    elif value.lower() == 'false':
+                        value = False
+                    elif value.isdigit():
+                        value = int(value)
+                    elif value.replace('.', '', 1).isdigit() and value.count('.') < 2:
+                        value = float(value)
+                    agent_args[key.strip()] = value
+        
+        return MuZeroAgentAdapter(**agent_args)
+        
     try:
         # Parse module and class names
         module_path, class_name = agent_class_path.rsplit('.', 1)

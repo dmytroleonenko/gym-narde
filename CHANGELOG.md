@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added optimized board generation with a 99% reduction in time
 - Bearing off validation checks with explanations of bearing conditions
 - Tracking of dice distribution patterns across games without valid moves
+- Integrated MuZero agent evaluation against baseline agents
 
 ### Changed
 - Improved the representation of the game state for better performance
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized batch processing for parallel game simulation
 - Added detailed logs for debugging dice values and valid moves when no moves are available
 - Clarified initial dice roll handling in environment initialization
+- Enhanced evaluation framework to directly support MuZero agents without requiring wrapper modules
 
 ### Fixed
 - Resolved issues with inconsistent reward calculations
