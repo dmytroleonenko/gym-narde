@@ -47,6 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed redundant diagnostics that attempted to second-guess the environment's valid move determination, fully trusting the environment's perspective on move validity
 - Fixed model loading compatibility issues with PyTorch 2.6's new security measures
 - Added support for loading models with different architecture configurations by extracting parameters from checkpoints
+- Enhanced retrain_model.py to handle different game formats and tensor shapes, improving robustness when processing game data for model retraining
+  - Added proper error handling for game file loading
+  - Fixed tensor dimension handling for state processing
+  - Improved batch filtering to handle invalid samples gracefully
+  - Added comprehensive format validation to prevent training crashes
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative

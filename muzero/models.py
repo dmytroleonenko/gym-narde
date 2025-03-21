@@ -131,6 +131,15 @@ class MuZeroNetwork(nn.Module):
         self.dynamics_network = DynamicsNetwork(hidden_dim, action_dim)
         self.prediction_network = PredictionNetwork(hidden_dim, action_dim)
         
+    def forward(self, observation):
+        """
+        Forward pass for direct network usage during training.
+        """
+        hidden, value, policy_logits = self.initial_inference(observation)
+        # For training, we need to return a dummy reward as well
+        reward = torch.zeros_like(value)  # dummy reward for initial inference
+        return value, policy_logits, reward
+        
     def initial_inference(self, observation):
         """
         Initial inference for the root node in MCTS.

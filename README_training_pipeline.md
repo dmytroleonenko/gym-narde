@@ -362,3 +362,62 @@ This configuration balances game generation throughput with training efficiency,
 - **GPU Utilization**: Optimized through batching of inference requests
 
 Compared to the non-optimized version, this represents a significant improvement in both game quality and generation speed, leading to more effective training. 
+
+## Retraining Models with Existing Game Data
+
+In addition to the full training pipeline, you can use the `retrain_model.py` script to retrain models using previously generated game data without generating new games.
+
+### Basic Usage
+
+```bash
+python retrain_model.py --games_dir games --model_path muzero_training/models/muzero_retrained.pt --input_dim 28 --action_dim 576 --hidden_dim 128
+```
+
+This will:
+- Load saved game data from the specified directory
+- Convert the game histories into training trajectories
+- Train a model with the given parameters
+- Save the trained model to the specified path
+
+### Command Line Arguments
+
+```bash
+python retrain_model.py \
+  --games_dir games \
+  --model_path muzero_training/models/muzero_retrained.pt \
+  --input_dim 28 \
+  --action_dim 576 \
+  --hidden_dim 128 \
+  --lr 0.0005 \
+  --batch_size 32 \
+  --num_epochs 5 \
+  --device cuda  # or "cpu" or "mps"
+```
+
+Key parameters:
+- `--games_dir`: Directory containing saved game files (.pkl format)
+- `--model_path`: Path to save the retrained model
+- `--input_dim`: Dimension of the observation space
+- `--action_dim`: Dimension of the action space
+- `--hidden_dim`: Hidden dimension for the MuZero network
+- `--lr`: Learning rate for training
+- `--batch_size`: Batch size for training
+- `--num_epochs`: Number of training epochs
+- `--device`: Device to use for training (cuda, cpu, mps)
+
+### Robust Game Data Handling
+
+The retrain_model.py script includes several robustness features:
+- Supports different game data formats (single games or lists of games)
+- Handles various tensor shapes and dimensions
+- Contains comprehensive error handling for corrupted game files
+- Automatically skips invalid game data
+- Provides detailed logging of the training process
+
+### Use Cases
+
+Retraining is particularly useful for:
+- Fine-tuning existing models with new game data
+- Experimenting with different model architectures on the same game data
+- Quickly iterating on hyperparameters without generating new games
+- Recovering from interrupted training sessions 

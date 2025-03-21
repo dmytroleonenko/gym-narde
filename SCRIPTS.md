@@ -39,6 +39,16 @@ This file documents the purpose and usage of key scripts in the project.
   - Periodic model evaluation and checkpointing
   - Automatic resumption from checkpoints
 
+### retrain_model.py
+- **Purpose**: Retrains MuZero models using existing game data
+- **Usage**: For fine-tuning models or training from saved game histories
+- **Features**:
+  - Loads game data from pickle files
+  - Converts game histories into training trajectories
+  - Robust error handling for different game formats
+  - Supports various model architectures and dimensions
+  - Compatible with both CPU and GPU training
+
 ### train_and_evaluate_muzero.py
 - **Purpose**: Training and evaluation of MuZero models
 - **Usage**: For training MuZero with various configurations

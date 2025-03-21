@@ -20,19 +20,21 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Union, Any
 import traceback
+import random
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor
 
 # Import local modules
-from muzero.models import MuZeroNetwork
-from muzero.replay import ReplayBuffer
-from muzero.training_optimized import optimized_training_epoch, train_muzero
-from muzero.parallel_self_play import (
-    generate_games_parallel,
-    load_games_from_directory,
-    get_optimal_worker_count,
-    save_game_history
-)
-from muzero.training_optimized import optimized_self_play
-from muzero.worker_functions import optimized_self_play_worker
+from models import MuZeroNetwork
+from replay import ReplayBuffer
+from parallel_self_play import load_games_from_directory, save_game_history
+from training_optimized import optimized_self_play
+from worker_functions import optimized_self_play_worker
+from config import MuZeroConfig
+from mcts import MCTS, Node
+from mcts_batched import BatchedMCTS, BatchedNode
+from game_simulator import GameSimulator
+from tqdm import tqdm
 
 # Configure logging
 log_level_name = os.environ.get('LOGLEVEL', 'INFO').upper()
@@ -41,7 +43,7 @@ logging.basicConfig(
     level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("MuZero-Pipeline")
+logger = logging.getLogger(__name__)
 
 # Set specific logger levels
 worker_logger = logging.getLogger("MuZero-Worker")
@@ -559,50 +561,76 @@ class TrainingPipeline:
         for iteration in range(start_iteration, start_iteration + self.training_iterations):
             logger.info(f"=== Iteration {iteration} ===")
             
-            # Game generation step update
-            if self.args.use_batched_game_generation:
-                try:
-                    logger.info("Using batched game generation with GPU accelerated MCTS.")
-                    
-                    # Create a model for batched MCTS
-                    logger.info("Creating initial model for batched game generation")
-                    model_path = os.path.join(self.models_dir, "muzero_model_temp.pth")
-                    torch.save(self.network.state_dict(), model_path)
-                    logger.info(f"Using model from {model_path} for batched game generation")
+            # Game generation step update (skip if requested)
+            if not self.args.skip_game_generation:
+                if self.args.use_batched_game_generation:
+                    try:
+                        logger.info("Using batched game generation with GPU accelerated MCTS.")
+                        
+                        # Create a model for batched MCTS
+                        logger.info("Creating initial model for batched game generation")
+                        model_path = os.path.join(self.models_dir, "muzero_model_temp.pth")
+                        torch.save(self.network.state_dict(), model_path)
+                        logger.info(f"Using model from {model_path} for batched game generation")
 
-                    # Initialize BatchedGameSimulator
-                    from final_complete_game_generation import BatchedGameSimulator
-                    simulator = BatchedGameSimulator(
-                        num_games=self.args.games_per_iteration,
-                        model_path=model_path,
-                        batch_size=self.args.mcts_batch_size,
-                        max_games=self.args.games_per_iteration,
-                        device=self.device,
-                        debug=self.args.debug
-                    )
-                    
-                    # Run simulation
-                    start_time = time.time()
-                    simulator.run()
-                    
-                    # Get game histories and add to replay buffer
-                    game_histories = simulator.extract_game_histories()
-                    self.add_games_to_replay_buffer(game_histories)
-                    generation_time = time.time() - start_time
-                    logger.info(f"Generated {len(game_histories)} games in {generation_time:.2f}s with batched MCTS")
-                    
-                except Exception as e:
-                    logger.error(f"Error in batched game generation: {str(e)}")
-                    logger.error(traceback.format_exc())
-                    logger.warning("Falling back to standard game generation...")
-                    self.network.to("cpu")
+                        # Initialize BatchedGameSimulator
+                        from final_complete_game_generation import BatchedGameSimulator
+                        simulator = BatchedGameSimulator(
+                            num_games=self.args.games_per_iteration,
+                            model_path=model_path,
+                            batch_size=self.args.mcts_batch_size,
+                            max_games=self.args.games_per_iteration,
+                            device=self.device,
+                            debug=self.args.debug
+                        )
+                        
+                        # Run simulation
+                        start_time = time.time()
+                        simulator.run()
+                        
+                        # Get game histories and add to replay buffer
+                        game_histories = simulator.extract_game_histories()
+                        self.add_games_to_replay_buffer(game_histories)
+                        generation_time = time.time() - start_time
+                        logger.info(f"Generated {len(game_histories)} games in {generation_time:.2f}s with batched MCTS")
+                        
+                    except Exception as e:
+                        logger.error(f"Error in batched game generation: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        logger.warning("Falling back to standard game generation...")
+                        self.network.to("cpu")
+                        start_time = time.time()
+                        self.generate_games(iteration, self.args.games_per_iteration)
+                        generation_time = time.time() - start_time
+                else:
                     start_time = time.time()
                     self.generate_games(iteration, self.args.games_per_iteration)
                     generation_time = time.time() - start_time
             else:
-                start_time = time.time()
-                self.generate_games(iteration, self.args.games_per_iteration)
-                generation_time = time.time() - start_time
+                logger.info("Skipping game generation as requested")
+                generation_time = 0
+                
+                # If existing_games_dir is provided, load games from there
+                if self.args.existing_games_dir and os.path.exists(self.args.existing_games_dir):
+                    logger.info(f"Loading existing games from {self.args.existing_games_dir}")
+                    try:
+                        game_files = []
+                        # Collect all .pkl files in the directory
+                        for file in os.listdir(self.args.existing_games_dir):
+                            if file.endswith('.pkl'):
+                                game_files.append(os.path.join(self.args.existing_games_dir, file))
+                                
+                        if not game_files:
+                            logger.warning(f"No .pkl files found in {self.args.existing_games_dir}")
+                        else:
+                            logger.info(f"Found {len(game_files)} game files")
+                            for game_file in game_files:
+                                games = load_games_from_directory(game_file)
+                                logger.info(f"Loaded {len(games)} games from {game_file}")
+                                self.add_games_to_replay_buffer(games)
+                    except Exception as e:
+                        logger.error(f"Error loading existing games: {str(e)}")
+                        logger.error(traceback.format_exc())
             
             # Train on generated games
             training_metrics = self.train_on_generated_games(iteration)
@@ -610,7 +638,8 @@ class TrainingPipeline:
             # Log combined metrics
             total_time = generation_time + training_metrics["training_time"]
             logger.info(f"Iteration {iteration} completed in {total_time:.2f}s")
-            logger.info(f"  Game generation: {generation_time:.2f}s")
+            if not self.args.skip_game_generation:
+                logger.info(f"  Game generation: {generation_time:.2f}s")
             logger.info(f"  Training: {training_metrics['training_time']:.2f}s")
             logger.info(f"  Value loss: {training_metrics['value_loss']:.4f}")
             logger.info(f"  Policy loss: {training_metrics['policy_loss']:.4f}")
@@ -658,58 +687,68 @@ class TrainingPipeline:
 
 
 def parse_arguments():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="MuZero Parallel Training Pipeline")
-    
-    # Training parameters
-    parser.add_argument("--base_dir", type=str, default="muzero_training", 
-                        help="Base directory for saving games and models")
-    parser.add_argument("--batch_size", type=int, default=128, 
+    """Parse command line arguments for the MuZero training pipeline."""
+    parser = argparse.ArgumentParser(description="MuZero training pipeline")
+    parser.add_argument("--base_dir", type=str, default="muzero_training",
+                        help="Directory for saving games and models")
+    parser.add_argument("--input_dim", type=int, default=64,
+                        help="Dimension of input observation")
+    parser.add_argument("--action_dim", type=int, default=4162,
+                        help="Dimension of action space")
+    parser.add_argument("--hidden_dim", type=int, default=256,
+                        help="Hidden dimension of MuZero network")
+    parser.add_argument("--num_res_blocks", type=int, default=2,
+                        help="Number of residual blocks in MuZero network")
+    parser.add_argument("--num_channels", type=int, default=256,
+                        help="Number of channels in MuZero network")
+    parser.add_argument("--batch_size", type=int, default=128,
                         help="Batch size for training")
-    parser.add_argument("--lr", type=float, default=0.001, 
+    parser.add_argument("--lr", type=float, default=0.001,
                         help="Learning rate")
-    parser.add_argument("--weight_decay", type=float, default=1e-4, 
-                        help="Weight decay")
-    parser.add_argument("--games_per_iteration", type=int, default=2000, 
+    parser.add_argument("--weight_decay", type=float, default=1e-4,
+                        help="Weight decay for optimizer")
+    parser.add_argument("--num_simulations", type=int, default=80,
+                        help="Number of MCTS simulations")
+    parser.add_argument("--mcts_batch_size", type=int, default=32,
+                        help="Batch size for MCTS inference")
+    parser.add_argument("--discount", type=float, default=0.997,
+                        help="Discount factor for rewards")
+    parser.add_argument("--dirichlet_alpha", type=float, default=0.3,
+                        help="Alpha parameter for Dirichlet noise")
+    parser.add_argument("--exploration_fraction", type=float, default=0.25,
+                        help="Fraction of noise to add to root node")
+    parser.add_argument("--games_per_iteration", type=int, default=2000,
                         help="Number of games to generate per iteration")
-    parser.add_argument("--num_simulations", type=int, default=50, 
-                        help="Number of MCTS simulations per move")
-    parser.add_argument("--num_epochs", type=int, default=10, 
+    parser.add_argument("--training_iterations", type=int, default=10,
+                        help="Number of training iterations to run")
+    parser.add_argument("--num_epochs", type=int, default=10,
                         help="Number of training epochs per iteration")
-    parser.add_argument("--num_workers", type=int, default=None, 
-                        help="Number of worker processes (default: auto-detect)")
-    parser.add_argument("--device", type=str, default="auto", 
-                        help="Device to use (cpu, cuda, mps, or auto)")
-    parser.add_argument("--temperature", type=float, default=1.0, 
-                        help="Temperature for action selection")
-    parser.add_argument("--temperature_drop", type=int, default=None, 
-                        help="Move number after which temperature is dropped to 0")
-    parser.add_argument("--mcts_batch_size", type=int, default=16, 
-                        help="Batch size for MCTS simulations and batched game generation")
-    parser.add_argument("--env_batch_size", type=int, default=16,
-                        help="Batch size for vectorized environments (only with optimized self-play)")
-    parser.add_argument("--use_optimized_self_play", action="store_true",
-                        help="Use the optimized self-play implementation with batched MCTS")
-    parser.add_argument("--use_batched_game_generation", action="store_true", 
-                        help="Use batched GPU accelerated game generation for faster game simulation")
-    parser.add_argument("--training_iterations", type=int, default=10, 
-                        help="Number of training iterations")
-    parser.add_argument("--save_checkpoint_every", type=int, default=1, 
-                        help="Save checkpoint every N iterations")
-    parser.add_argument("--load_iteration", type=int, default=None, 
-                        help="Load checkpoint from specific iteration (default: latest)")
     parser.add_argument("--replay_buffer_size", type=int, default=100000,
-                        help="Maximum size of the replay buffer")
+                        help="Maximum size of replay buffer")
+    parser.add_argument("--num_unroll_steps", type=int, default=5,
+                        help="Number of unroll steps during training")
+    parser.add_argument("--td_steps", type=int, default=10,
+                        help="Number of steps for bootstrapping targets")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
+                        help="Device to use for training")
+    parser.add_argument("--save_checkpoint_every", type=int, default=1,
+                        help="How often to save checkpoints (in iterations)")
+    parser.add_argument("--load_iteration", type=int, default=None,
+                        help="Iteration to load model from (None for no loading)")
     parser.add_argument("--debug", action="store_true",
-                        help="Enable debug logging")
-    
-    # Network parameters
-    parser.add_argument("--hidden_dim", type=int, default=128, 
-                        help="Hidden dimension for the MuZero network")
-    parser.add_argument("--input_dim", type=int, default=28,
-                        help="Input dimension for observation space")
-    parser.add_argument("--action_dim", type=int, default=576,
-                        help="Action dimension (24x24 possible moves)")
+                        help="Enable debug output")
+    parser.add_argument("--random_seed", type=int, default=None,
+                        help="Random seed for reproducibility")
+    parser.add_argument("--use_batched_game_generation", action="store_true",
+                        help="Use batched game generation with GPU-accelerated MCTS")
+    parser.add_argument("--use_value_prefix", action="store_true",
+                        help="Use value prefix in MuZero network")
+    parser.add_argument("--use_symmetry", action="store_true",
+                        help="Use board symmetry for data augmentation")
+    parser.add_argument("--skip_game_generation", action="store_true",
+                        help="Skip game generation and only perform training with existing games")
+    parser.add_argument("--existing_games_dir", type=str, default=None,
+                        help="Directory containing existing games to use for training (only with --skip_game_generation)")
     
     return parser.parse_args()
 
