@@ -13,6 +13,7 @@ This file documents the purpose and usage of key scripts in the project.
   - Proper handling of no-move situations
   - Complete game generation with ~245 moves per game
   - Detailed logging and statistics
+  - XLA optimization support for TPU/GPU acceleration
 
 ### final_optimized_game_generation.py
 - **Purpose**: Optimized version of game generation focused on performance
@@ -45,6 +46,26 @@ This file documents the purpose and usage of key scripts in the project.
   - Support for different hardware (CUDA, MPS, CPU)
   - Configurable hyperparameters
   - Evaluation capabilities
+
+## MuZero Implementation Files
+
+### muzero/mcts_batched_xla.py
+- **Purpose**: XLA-optimized implementation of batched Monte Carlo Tree Search for MuZero
+- **Usage**: For accelerated MCTS operations on TPUs and GPUs with XLA support
+- **Features**:
+  - Reduced CPU-GPU synchronization
+  - Batched tensor operations
+  - Pre-allocated tensors for better performance
+  - Compatible with standard PyTorch but optimized for XLA
+
+### muzero/xla_utils.py
+- **Purpose**: Utilities for XLA-friendly PyTorch code
+- **Usage**: Support library for XLA optimizations across the codebase
+- **Features**:
+  - XLA device management
+  - Fallback mechanisms for non-XLA environments
+  - Tensor conversion utilities
+  - Step marking for compilation optimization
 
 ## Evaluation Scripts
 

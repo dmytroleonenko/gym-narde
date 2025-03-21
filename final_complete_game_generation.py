@@ -32,6 +32,8 @@ import numpy as np
 import torch
 from muzero.mcts import MCTS
 from muzero.mcts_batched import BatchedMCTS
+from muzero.mcts_batched_xla import XLAOptimizedMCTS, run_xla_optimized_mcts
+from muzero.xla_utils import get_xla_device, to_xla_tensor, mark_step
 from muzero.models import MuZeroNetwork
 
 # Set up logging
@@ -1058,16 +1060,17 @@ class BatchedGameSimulator:
     Simulates multiple games in parallel, using batched MCTS inference on GPU.
     Handles dynamic batch sizing and ensures inference runs even when batch isn't full.
     """
-    def __init__(self, num_games, model_path, batch_size=32, max_games=100, device="cuda", num_simulations=5, debug=False):
+    def __init__(self, num_games, model_path, batch_size=32, max_games=100, device="cuda", num_simulations=5, debug=False, use_xla=False):
         self.num_games = num_games
         self.model_path = model_path
         self.batch_size = batch_size
         self.max_games = max_games
-        self.device = device
+        self.device = get_xla_device(device) if use_xla else device
         self.debug = debug
         self.logger = self._setup_logger()
         self.num_simulations = num_simulations
         self.max_moves_per_game = 500  # Limit games to 500 moves
+        self.use_xla = use_xla
 
         # Initialize active games
         self.env_list = []
@@ -1079,9 +1082,13 @@ class BatchedGameSimulator:
         self.model = self._load_model()
         
         # Initialize batched MCTS
-        self.mcts = BatchedMCTS(self.model, device=self.device, num_simulations=self.num_simulations)
+        if self.use_xla:
+            self.logger.info("Using XLA-optimized MCTS")
+            self.mcts = XLAOptimizedMCTS(self.model, device=self.device, num_simulations=self.num_simulations)
+        else:
+            self.mcts = BatchedMCTS(self.model, device=self.device, num_simulations=self.num_simulations)
         
-        self.logger.info(f"Initialized BatchedGameSimulator with device={self.device}, max_batch_size={self.batch_size}")
+        self.logger.info(f"Initialized BatchedGameSimulator with device={self.device}, max_batch_size={self.batch_size}, use_xla={self.use_xla}")
         
         # Initialize games
         self.logger.info(f"Initializing {self.num_games} active games...")
@@ -1350,23 +1357,50 @@ class BatchedGameSimulator:
         
         # Convert to tensor format
         batch_observations = torch.tensor(np.array(observations), dtype=torch.float32, device=self.device)
+        if self.use_xla:
+            batch_observations = to_xla_tensor(batch_observations)
         
         # Run batched MCTS
         with torch.no_grad():
             batch_actions = []
-            for i in range(batch_size):
-                # For each game, run MCTS and select actions
-                policy = self.mcts.run(batch_observations[i], valid_actions_list[i])
-                action = np.random.choice(len(policy), p=policy)
-                batch_actions.append(action)
-                self.logger.debug(f"Game {games[i]['game_id']} - Selected action: {action}, Policy shape: {policy.shape}")
+            if self.use_xla:
+                # Use the XLA-optimized version for the whole batch
+                batch_policies = run_xla_optimized_mcts(
+                    self.mcts,
+                    batch_observations,
+                    valid_actions_list
+                )
+                # Select actions from policies
+                for i in range(batch_size):
+                    policy = batch_policies[i]
+                    action = np.random.choice(len(policy), p=policy)
+                    batch_actions.append(action)
+                    self.logger.debug(f"Game {games[i]['game_id']} - Selected action: {action}, Policy shape: {policy.shape}")
+                    
+                    # Debug - check if selected action is in valid actions
+                    if action not in valid_actions_list[i]:
+                        self.logger.error(f"Game {games[i]['game_id']} - CRITICAL ERROR: Selected action {action} not in valid actions {valid_actions_list[i]}")
+                        # Log more details about the policy
+                        top_actions = np.argsort(policy)[-5:][::-1]  # Top 5 actions by probability
+                        self.logger.error(f"Game {games[i]['game_id']} - Top 5 actions in policy: {top_actions} with probs: {policy[top_actions]}")
                 
-                # Debug - check if selected action is in valid actions
-                if action not in valid_actions_list[i]:
-                    self.logger.error(f"Game {games[i]['game_id']} - CRITICAL ERROR: Selected action {action} not in valid actions {valid_actions_list[i]}")
-                    # Log more details about the policy
-                    top_actions = np.argsort(policy)[-5:][::-1]  # Top 5 actions by probability
-                    self.logger.error(f"Game {games[i]['game_id']} - Top 5 actions in policy: {top_actions} with probs: {policy[top_actions]}")
+                # Mark step for XLA optimization
+                mark_step()
+            else:
+                # Original implementation for standard PyTorch
+                for i in range(batch_size):
+                    # For each game, run MCTS and select actions
+                    policy = self.mcts.run(batch_observations[i], valid_actions_list[i])
+                    action = np.random.choice(len(policy), p=policy)
+                    batch_actions.append(action)
+                    self.logger.debug(f"Game {games[i]['game_id']} - Selected action: {action}, Policy shape: {policy.shape}")
+                    
+                    # Debug - check if selected action is in valid actions
+                    if action not in valid_actions_list[i]:
+                        self.logger.error(f"Game {games[i]['game_id']} - CRITICAL ERROR: Selected action {action} not in valid actions {valid_actions_list[i]}")
+                        # Log more details about the policy
+                        top_actions = np.argsort(policy)[-5:][::-1]  # Top 5 actions by probability
+                        self.logger.error(f"Game {games[i]['game_id']} - Top 5 actions in policy: {top_actions} with probs: {policy[top_actions]}")
         
         # Take actions in environments
         for i, game in enumerate(games):
@@ -1498,6 +1532,10 @@ if __name__ == "__main__":
     parser.add_argument('--parallel', action='store_true', help='Run games in parallel')
     parser.add_argument('--workers', type=int, default=None, help='Number of worker processes')
     parser.add_argument('--output', type=str, default='games', help='Output directory for game data')
+    parser.add_argument('--use_xla', action='store_true', help='Use XLA-optimized MCTS for better performance')
+    parser.add_argument('--device', type=str, default="cuda", help='Device to use (cuda, cpu, tpu)')
+    parser.add_argument('--simulations', type=int, default=5, help='Number of MCTS simulations to run')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for batched operations')
     args = parser.parse_args()
 
     # Set up logging
@@ -1583,19 +1621,51 @@ if __name__ == "__main__":
         # Run games sequentially
         logger.info("Running games sequentially")
         
-        for game_idx in range(args.games):
-            seed = game_idx  # Use game index as seed for reproducibility
-            result = run_game(
-                agent1, 
-                agent2, 
-                config,
-                game_idx,
-                seed,
-                args.debug
+        # Check if model is provided and not using random policy
+        if args.model and not args.random:
+            # Use batched game simulator for better performance when using MuZero
+            logger.info(f"Using BatchedGameSimulator with model path: {args.model}")
+            
+            simulator = BatchedGameSimulator(
+                num_games=args.games,
+                model_path=args.model,
+                batch_size=args.batch_size,
+                max_games=args.games,
+                device=args.device,
+                num_simulations=args.simulations,
+                debug=args.debug,
+                use_xla=args.use_xla
             )
             
-            if result:
+            logger.info(f"Starting game simulation with XLA optimization: {args.use_xla}")
+            simulator.run()
+            
+            # Extract results in the expected format
+            for i, history in enumerate(simulator.game_histories):
+                # Extract basic game stats
+                result = {
+                    'game_id': i,
+                    'num_moves': len(history.actions) if history.actions else 0,
+                    'winner': -1,  # Default to draw
+                    'elapsed_time': 0,
+                }
                 results.append(result)
+            
+        else:
+            # Use standard game runner for random agent games
+            for game_idx in range(args.games):
+                seed = game_idx  # Use game index as seed for reproducibility
+                result = run_game(
+                    agent1, 
+                    agent2, 
+                    config,
+                    game_idx,
+                    seed,
+                    args.debug
+                )
+                
+                if result:
+                    results.append(result)
     
     end_time = time.time()
     elapsed_time = end_time - start_time

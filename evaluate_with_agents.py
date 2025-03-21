@@ -8,7 +8,7 @@ import gymnasium as gym
 import argparse
 import sys
 import importlib
-from narde_benchmark import NardeBenchmark, ColorAssignment
+from benchmarks.narde_benchmark import NardeBenchmark, ColorAssignment
 import os
 
 
