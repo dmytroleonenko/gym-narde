@@ -32,12 +32,51 @@ def load_games_from_file(filepath):
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
             
-        # Handle both single game and list of games
         if isinstance(data, dict):
-            return [data]  # Return as a list of one game
+            # Single game in a dictionary format
+            return [data]
         elif isinstance(data, list):
-            # Make sure each item in the list is a dict
-            return [game for game in data if isinstance(game, dict)]
+            # Check if it's a list of game dictionaries
+            if all(isinstance(game, dict) for game in data):
+                return [game for game in data if isinstance(game, dict)]
+            # Check if it's a list of formatted_history entries (batched game format)
+            elif len(data) > 0 and isinstance(data[0], list) and len(data[0]) > 0 and isinstance(data[0][0], tuple):
+                # This is the batched game format from BatchedGameSimulator
+                # Convert each formatted_history into our expected game format
+                games = []
+                for game_id, formatted_history in enumerate(data):
+                    if len(formatted_history) == 0:
+                        continue
+                        
+                    states = []
+                    actions = []
+                    rewards = []
+                    
+                    # Extract data from tuples (observation, action, reward, policy)
+                    for entry in formatted_history:
+                        if len(entry) >= 3:  # Need at least observation, action, reward
+                            states.append(entry[0])  # observation
+                            actions.append(entry[1])  # action
+                            rewards.append(entry[2])  # reward
+                    
+                    # Create game dictionary in our expected format
+                    if len(states) > 0 and len(actions) > 0 and len(rewards) > 0:
+                        game_dict = {
+                            'game_history': {
+                                'states': states,
+                                'actions': actions,
+                                'rewards': rewards
+                            },
+                            'winner': 1 if sum(rewards) > 0 else (2 if sum(rewards) < 0 else 0)
+                        }
+                        games.append(game_dict)
+                
+                logging.info(f"Converted {len(games)} games from batched format")
+                return games
+            else:
+                # Neither a list of dictionaries nor a batched game format
+                logging.warning(f"Unrecognized data format in {filepath}")
+                return []
         else:
             logging.warning(f"Unexpected data type in {filepath}: {type(data)}")
             return []
