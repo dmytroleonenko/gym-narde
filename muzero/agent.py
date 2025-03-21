@@ -67,14 +67,33 @@ class MuZeroAgent:
         
         # Load the model weights
         try:
-            # Load state dict
-            state_dict = torch.load(model_path, map_location=self.device)
+            # Load state dict with weights_only=False to handle PyTorch 2.6+ security changes
+            state_dict = torch.load(model_path, map_location=self.device, weights_only=False)
             self.network.load_state_dict(state_dict)
             self.network.eval()
             print(f"Successfully loaded model from {model_path}")
         except Exception as e:
             print(f"Error loading model from {model_path}: {e}")
-            raise
+            # Try alternative loading method for backward compatibility
+            try:
+                print("Attempting alternative loading method...")
+                # Add safe globals for numpy scalar (needed for PyTorch 2.6+)
+                import numpy as np
+                from torch.serialization import add_safe_globals
+                try:
+                    add_safe_globals([np._core.multiarray.scalar])
+                except AttributeError:
+                    # Handle case where numpy structure is different
+                    print("Could not access np._core.multiarray.scalar, trying alternative approach")
+                
+                # Retry loading with weights_only=True
+                state_dict = torch.load(model_path, map_location=self.device)
+                self.network.load_state_dict(state_dict)
+                self.network.eval()
+                print(f"Successfully loaded model with alternative method from {model_path}")
+            except Exception as e2:
+                print(f"Error with alternative loading method: {e2}")
+                raise
             
         # Create MCTS for planning
         self.mcts = MCTS(
