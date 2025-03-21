@@ -58,7 +58,18 @@ class MuZeroAgent:
         self.input_dim = 28  # NardeEnv observation space size
         self.action_dim = 24 * 24  # From-to position pairs
         
-        # Load the MuZero network
+        # First try to load the checkpoint to get architecture info
+        try:
+            checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+            if isinstance(checkpoint, dict):
+                # Check if hidden_dim is stored in the checkpoint
+                if "hidden_dim" in checkpoint:
+                    hidden_dim = checkpoint["hidden_dim"]
+                    print(f"Using hidden_dim={hidden_dim} from checkpoint")
+        except Exception as e:
+            print(f"Could not pre-read checkpoint for architecture info: {e}")
+        
+        # Load the MuZero network with possibly updated hidden_dim
         self.network = MuZeroNetwork(
             input_dim=self.input_dim,
             action_dim=self.action_dim,

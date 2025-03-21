@@ -12,7 +12,7 @@ import torch
 import random
 from abc import ABC, abstractmethod
 from train_simpledqn import DQN  # Import DQN model class from training script
-from narde_benchmark import GenericNardeAgent
+from benchmarks.narde_benchmark import GenericNardeAgent
 import torch.nn as nn
 import torch.optim as optim
 

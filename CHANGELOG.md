@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verified all valid move generation is now exclusively handled by environment methods (env.game.get_valid_moves()), eliminating any manual valid move generation via nested loops
 - Removed redundant diagnostics that attempted to second-guess the environment's valid move determination, fully trusting the environment's perspective on move validity
 - Fixed model loading compatibility issues with PyTorch 2.6's new security measures
+- Added support for loading models with different architecture configurations by extracting parameters from checkpoints
 
 ### Notes
 - The JAX MuZero implementation still has compatibility issues with Apple Silicon, but the CPU version provides a reliable alternative
