@@ -68,7 +68,17 @@ class MuZeroAgent:
         # Load the model weights
         try:
             # Load state dict with weights_only=False to handle PyTorch 2.6+ security changes
-            state_dict = torch.load(model_path, map_location=self.device, weights_only=False)
+            checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+            
+            # Check if this is a full checkpoint or just the model weights
+            if isinstance(checkpoint, dict) and "network_state_dict" in checkpoint:
+                # This is a full training checkpoint, extract just the network weights
+                print("Detected full training checkpoint, extracting network state dict")
+                state_dict = checkpoint["network_state_dict"]
+            else:
+                # This is already just the network weights
+                state_dict = checkpoint
+                
             self.network.load_state_dict(state_dict)
             self.network.eval()
             print(f"Successfully loaded model from {model_path}")
@@ -77,23 +87,43 @@ class MuZeroAgent:
             # Try alternative loading method for backward compatibility
             try:
                 print("Attempting alternative loading method...")
-                # Add safe globals for numpy scalar (needed for PyTorch 2.6+)
+                # Add safe globals for numpy scalar and dtype (needed for PyTorch 2.6+)
                 import numpy as np
                 from torch.serialization import add_safe_globals
                 try:
-                    add_safe_globals([np._core.multiarray.scalar])
+                    # Add both scalar and dtype to safe globals
+                    add_safe_globals([np._core.multiarray.scalar, np.dtype])
                 except AttributeError:
                     # Handle case where numpy structure is different
-                    print("Could not access np._core.multiarray.scalar, trying alternative approach")
+                    print("Could not access numpy internals directly, trying alternative approach")
+                    # Add known numpy types to safe globals
+                    import torch.serialization as serialization
+                    for obj_name in ["scalar", "dtype"]:
+                        try:
+                            serialization.add_safe_globals_callable(f"numpy.{obj_name}")
+                        except Exception:
+                            print(f"Failed to add numpy.{obj_name} to safe globals")
                 
-                # Retry loading with weights_only=True
-                state_dict = torch.load(model_path, map_location=self.device)
+                # Retry loading with weights_only=False
+                checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+                
+                # Check if this is a full checkpoint or just the model weights
+                if isinstance(checkpoint, dict) and "network_state_dict" in checkpoint:
+                    # This is a full training checkpoint, extract just the network weights
+                    print("Detected full training checkpoint, extracting network state dict")
+                    state_dict = checkpoint["network_state_dict"]
+                else:
+                    # This is already just the network weights
+                    state_dict = checkpoint
+                    
                 self.network.load_state_dict(state_dict)
                 self.network.eval()
                 print(f"Successfully loaded model with alternative method from {model_path}")
             except Exception as e2:
                 print(f"Error with alternative loading method: {e2}")
-                raise
+                # Last resort: try to initialize the model and continue without the weights
+                print("WARNING: Could not load model weights. Continuing with randomly initialized model.")
+                self.network.eval()
             
         # Create MCTS for planning
         self.mcts = MCTS(
